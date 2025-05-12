@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const Navbar = () => {
+const Navbar = ({ activeSection, scrollToSection, openSignupModal, openLoginModal }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -29,13 +29,19 @@ const Navbar = () => {
             </div>
           </div>
 
-          {/* Auth buttons */}
+          {/* Auth buttons - Desktop */}
           <div className="hidden md:block">
             <div className="ml-4 flex items-center md:ml-6 space-x-2">
-              <button className="text-[#3a7bd5] hover:text-[#2a65b0] border border-[#3a7bd5] hover:border-[#2a65b0] px-4 py-1.5 rounded-md text-sm font-medium transition-colors">
+              <button
+                onClick={openLoginModal}
+                className="text-[#3a7bd5] hover:text-[#2a65b0] border border-[#3a7bd5] hover:border-[#2a65b0] px-4 py-1.5 rounded-md text-sm font-medium transition-colors"
+              >
                 Login
               </button>
-              <button className="bg-[#3a7bd5] text-white hover:bg-[#2a65b0] px-4 py-1.5 rounded-md text-sm font-medium transition-colors shadow-md hover:shadow-lg">
+              <button
+                onClick={openSignupModal}
+                className="bg-[#3a7bd5] text-white hover:bg-[#2a65b0] px-4 py-1.5 rounded-md text-sm font-medium transition-colors shadow-md hover:shadow-lg"
+              >
                 Sign Up
               </button>
             </div>
@@ -78,10 +84,16 @@ const Navbar = () => {
           </div>
           <div className="pt-4 pb-3 border-t border-gray-200">
             <div className="flex items-center px-5 space-x-4">
-              <button className="flex-1 text-[#3a7bd5] border border-[#3a7bd5] hover:border-[#2a65b0] hover:text-[#2a65b0] px-3 py-2 rounded-md text-sm font-medium">
+              <button
+                onClick={openLoginModal}
+                className="flex-1 text-[#3a7bd5] border border-[#3a7bd5] hover:border-[#2a65b0] hover:text-[#2a65b0] px-3 py-2 rounded-md text-sm font-medium"
+              >
                 Login
               </button>
-              <button className="flex-1 bg-[#3a7bd5] text-white hover:bg-[#2a65b0] px-4 py-1.5 rounded-md text-sm font-medium transition-colors shadow-md">
+              <button
+                onClick={openSignupModal}
+                className="flex-1 bg-[#3a7bd5] text-white hover:bg-[#2a65b0] px-4 py-1.5 rounded-md text-sm font-medium transition-colors shadow-md"
+              >
                 Sign Up
               </button>
             </div>
