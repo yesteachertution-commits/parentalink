@@ -18,7 +18,7 @@ function Home() {
     "Notify results and school events"
   ];
 
-  // Background color cycle
+  // Background color cycle hello
   useEffect(() => {
     const colors = ['#f9fbfa', '#f0f7fa', '#e8f4fa', '#f0faf9', '#f9fbfa'];
     let index = 0;
