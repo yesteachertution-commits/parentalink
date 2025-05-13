@@ -6,6 +6,8 @@ import ProtectedRoute from './routes/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import Login from './models/Login'; // if you have a login page
 import SignupModal from './models/Signup'; // if you have a signup page
+import { StudentProvider } from './context/StudentContext';
+
 
 function App() {
   return (
@@ -16,9 +18,11 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignupModal/>} /> {/* Assuming you have a signup page */}
           <Route path="/dashboard" element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
+            <StudentProvider>
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            </StudentProvider>
           } />
         </Routes>
       </Router>

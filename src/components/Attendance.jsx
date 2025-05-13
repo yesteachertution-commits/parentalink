@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { StudentContext } from '../context/StudentContext';
 
 const AttendanceDirectory = () => {
-  const { students, setStudents } = useContext(StudentContext);
+  const { students, setStudents, fetchStudent } = useContext(StudentContext);
   const [selectedClass, setSelectedClass] = useState('All Classes');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showMarkAttendance, setShowMarkAttendance] = useState(false);
