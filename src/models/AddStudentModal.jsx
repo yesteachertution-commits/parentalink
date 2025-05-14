@@ -15,10 +15,20 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  
+    if (name === "mobile") {
+      // Only keep digits
+      const numericValue = value.replace(/\D/g, '').slice(0, 10); // Enforce 10-digit max
+      setFormData(prev => ({
+        ...prev,
+        [name]: numericValue
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -27,11 +37,16 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
     setError('');
   
     try {
-      const token = await AsyncStorage.getItem('token'); // adjust key if needed
+      const token = await AsyncStorage.getItem('token');
+  
+      const payload = {
+        ...formData,
+        mobile: `+91${formData.mobile.trim()}`
+      };
   
       const response = await axios.post(
         "http://localhost:5001/api/create/students",
-        formData,
+        payload,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -41,7 +56,7 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
       );
   
       console.log("Student added:", response.data);
-      onAddStudent(formData);
+      onAddStudent(payload); // Send the updated number
       onClose();
     } catch (err) {
       console.error("Error adding student:", err);
@@ -50,7 +65,6 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
       setLoading(false);
     }
   };
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -89,6 +103,7 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                     required
+                    placeholder='enter student name'
                   />
                 </div>
                 
@@ -101,20 +116,28 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                     required
+                    placeholder='enter father name'
                   />
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
                   <input
-                    type="tel"
+                    type="text"
                     name="mobile"
                     value={formData.mobile}
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                     required
+                    placeholder='enter mobile number'
+                    
+inputMode="numeric"
+pattern="[0-9]*"
+                   
+        
                   />
                 </div>
+                <p className="text-xs text-gray-500 mt-1">Enter 10-digit number</p>
                 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Class</label>
@@ -124,6 +147,7 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                     required
+                   
                   >
                     <option value="">Select a class</option>
                     {classOptions.map((cls, idx) => (

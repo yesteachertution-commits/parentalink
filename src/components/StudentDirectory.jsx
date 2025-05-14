@@ -18,6 +18,7 @@ const StudentDirectory = () => {
 
   const [students, setStudents] = useState([]);
 
+  // Fetch students on mount
   useEffect(() => {
     const fetchStudents = async () => {
       try {
@@ -37,13 +38,13 @@ const StudentDirectory = () => {
   }, []);
 
   const handleAddStudent = (newStudent) => {
-    const newId = students.length > 0 ? Math.max(...students.map(s => s.id || 0)) + 1 : 1;
+    const newId = students.length > 0 ? Math.max(...students.map(s => s.id)) + 1 : 1;
     setStudents([...students, { ...newStudent, id: newId }]);
     setShowAddModal(false);
   };
 
   const gradeClasses = Array.from({ length: 12 }, (_, i) => `Grade ${i + 1}`);
-  const classes = ['All Classes', ...gradeClasses, ...new Set(students.map(student => student.classes).filter(Boolean))];
+  const classes = ['All Classes', ...gradeClasses, ...new Set(students.map(student => student.class))];
 
   const filteredStudents = selectedClass === 'All Classes'
     ? students
@@ -137,7 +138,7 @@ const StudentDirectory = () => {
                       <td className="px-6 py-4"><input name="fatherName" value={editFormData.fatherName} onChange={handleEditFormChange} className="w-full px-3 py-2 border rounded" /></td>
                       <td className="px-6 py-4"><input name="mobile" value={editFormData.mobile} onChange={handleEditFormChange} className="w-full px-3 py-2 border rounded" /></td>
                       <td className="px-6 py-4">
-                        <select name="classes" value={editFormData.classes} onChange={handleEditFormChange} className="w-full px-3 py-2 border rounded">
+                        <select name="class" value={editFormData.classes} onChange={handleEditFormChange} className="w-full px-3 py-2 border rounded">
                           {classes.filter(c => c !== 'All Classes').map((cls, i) => <option key={i} value={cls}>{cls}</option>)}
                         </select>
                       </td>
