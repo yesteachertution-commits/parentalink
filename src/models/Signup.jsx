@@ -17,6 +17,8 @@ const ToastMessage = () => (
 );
 
 const SignupModal = ({ isOpen, onClose }) => {
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
   const { login, token } = useAuth(); // Access token from context
   const navigate = useNavigate();
 
@@ -55,7 +57,7 @@ const SignupModal = ({ isOpen, onClose }) => {
 
     try {
       setLoading(true);
-      const res = await axios.post("http://localhost:5001/api/user/signup", {
+      const res = await axios.post(`${backendUrl}/api/user/signup`, {
         name: formData.name,
         email: formData.email,
         password: formData.password,

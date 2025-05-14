@@ -7,12 +7,14 @@ export const StudentContext = createContext();
 
 export const StudentProvider = ({ children }) => {
   const [students, setStudents] = useState([]);
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
 
   // Define fetchStudents function here
   const fetchStudents = async () => {
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await axios.get('http://localhost:5001/api/create/students', {
+      const response = await axios.get(`${backendUrl}/api/create/students`, {
         headers: { Authorization: `Bearer ${token}` },
       });
   
