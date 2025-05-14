@@ -6,6 +6,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import { FiCheckCircle, FiXCircle, FiSend } from 'react-icons/fi';
 
 const AttendanceDirectory = () => {
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
   const { students, setStudents } = useContext(StudentContext);
   const [selectedClass, setSelectedClass] = useState('All Classes');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -57,7 +59,7 @@ const AttendanceDirectory = () => {
             }))
       };
 
-      await axios.post('http://localhost:5001/api/notification/notify-parents', payload);
+      await axios.post(`${backendUrl}/api/notification/notify-parents`, payload);
       toast.success(
         <div className="flex items-center space-x-2">
           <FiCheckCircle className="text-green-500 text-xl flex-shrink-0" />

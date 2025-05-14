@@ -6,6 +6,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import { FiCheckCircle, FiXCircle, FiSave, FiEdit2, FiTrash2, FiUsers, FiBook, FiSend } from 'react-icons/fi';
 
 const Grades = () => {
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
   const { students, setStudents } = useContext(StudentContext);
   const [selectedClass, setSelectedClass] = useState('All Classes');
   const [selectedSubject, setSelectedSubject] = useState('Math');
@@ -54,7 +56,7 @@ const Grades = () => {
             }))
       };
 
-      await axios.post('http://localhost:5001/api/notification/notify-parents-mark', payload);
+      await axios.post(`${backendUrl}/api/notification/notify-parents-mark`, payload);
       toast.success(
         <div className="flex items-center space-x-2">
           <FiCheckCircle className="text-green-500 text-xl flex-shrink-0" />
@@ -129,7 +131,7 @@ const Grades = () => {
     setStudents(updatedStudents);
 
     try {
-      await axios.post('http://localhost:5001/api/grades/update', {
+      await axios.post(`${backendUrl}/api/grades/update`, {
         studentId,
         subject: selectedSubject,
         marks,

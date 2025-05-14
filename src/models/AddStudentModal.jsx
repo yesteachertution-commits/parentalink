@@ -32,6 +32,8 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
   };
 
   const handleSubmit = async (e) => {
+    const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
     e.preventDefault();
     setLoading(true);
     setError('');
@@ -45,7 +47,7 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
       };
   
       const response = await axios.post(
-        "http://localhost:5001/api/create/students",
+        `${backendUrl}/api/create/students`,
         payload,
         {
           headers: {

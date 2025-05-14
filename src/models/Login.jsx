@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const Login = ({ isOpen, onClose }) => {
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -30,7 +31,7 @@ const Login = ({ isOpen, onClose }) => {
     setLoading(true);
 
     try {
-      const res = await axios.post('http://localhost:5001/api/user/login', {
+      const res = await axios.post(`${backendUrl}/api/user/login`, {
         email: formData.email,
         password: formData.password
       });

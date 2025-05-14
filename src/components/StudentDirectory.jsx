@@ -5,6 +5,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 const StudentDirectory = () => {
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+
   const [selectedClass, setSelectedClass] = useState('All Classes');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [editingStudent, setEditingStudent] = useState(null);
@@ -23,7 +25,7 @@ const StudentDirectory = () => {
     const fetchStudents = async () => {
       try {
         const token = await AsyncStorage.getItem('token');
-        const response = await axios.get("http://localhost:5001/api/create/students", {
+        const response = await axios.get(`${backendUrl}/api/create/students`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
