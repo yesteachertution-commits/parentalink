@@ -1,105 +1,135 @@
 import { useState } from 'react';
+import { FiHome, FiInfo, FiMail, FiLogIn, FiUserPlus } from 'react-icons/fi';
 
 const Navbar = ({ activeSection, scrollToSection, openSignupModal, openLoginModal }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [hoveredItem, setHoveredItem] = useState(null);
 
   return (
-    <nav className="bg-[#f9fbfa] shadow-md fixed top-0 left-0 w-full z-50">
+    <nav className="bg-white/90 backdrop-blur-md shadow-sm border-b border-blue-100 fixed top-0 left-0 w-full z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <div className="flex-shrink-0">
-            <span className="text-xl font-bold text-[#3a7bd5] hover:text-[#2a65b0] transition-colors">
+          {/* Logo with gradient */}
+          <div className="flex-shrink-0 flex items-center">
+            <span className="text-2xl font-extrabold bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">
               YourBrand
             </span>
           </div>
 
-          {/* Desktop menu */}
+          {/* Desktop menu with animated underline */}
           <div className="hidden md:block">
-            <div className="ml-10 flex items-center space-x-4">
-              <a href="#home" className="text-[#3a7bd5] hover:text-[#2a65b0] hover:bg-[#daeaff] px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                Home
-              </a>
-              <a href="#about" className="text-[#3a7bd5] hover:text-[#2a65b0] hover:bg-[#daeaff] px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                About
-              </a>
-              <a href="#contact" className="text-[#3a7bd5] hover:text-[#2a65b0] hover:bg-[#daeaff] px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                Contact Us
-              </a>
+            <div className="ml-10 flex items-center space-x-1">
+              {[
+                { id: 'home', label: 'Home', icon: <FiHome className="mr-1" /> },
+                { id: 'about', label: 'About', icon: <FiInfo className="mr-1" /> },
+                { id: 'contact', label: 'Contact', icon: <FiMail className="mr-1" /> }
+              ].map((item) => (
+                <button
+                  key={item.id}
+                  onMouseEnter={() => setHoveredItem(item.id)}
+                  onMouseLeave={() => setHoveredItem(null)}
+                  onClick={() => scrollToSection(item.id)}
+                  className={`relative px-4 py-2 text-sm font-medium transition-colors ${
+                    activeSection === item.id ? 'text-blue-600' : 'text-gray-600 hover:text-blue-500'
+                  }`}
+                >
+                  <div className="flex items-center">
+                    {item.icon}
+                    {item.label}
+                  </div>
+                  <div
+                    className={`absolute bottom-0 left-0 h-0.5 bg-blue-500 transition-all duration-300 ${
+                      hoveredItem === item.id || activeSection === item.id ? 'w-full' : 'w-0'
+                    }`}
+                  />
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Auth buttons - Desktop */}
+          {/* Auth buttons - Desktop with subtle animations */}
           <div className="hidden md:block">
-            <div className="ml-4 flex items-center md:ml-6 space-x-2">
+            <div className="ml-4 flex items-center md:ml-6 space-x-3">
               <button
                 onClick={openLoginModal}
-                className="text-[#3a7bd5] hover:text-[#2a65b0] border border-[#3a7bd5] hover:border-[#2a65b0] px-4 py-1.5 rounded-md text-sm font-medium transition-colors"
+                className="flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-all hover:-translate-y-0.5"
               >
+                <FiLogIn className="mr-1.5" />
                 Login
               </button>
               <button
                 onClick={openSignupModal}
-                className="bg-[#3a7bd5] text-white hover:bg-[#2a65b0] px-4 py-1.5 rounded-md text-sm font-medium transition-colors shadow-md hover:shadow-lg"
+                className="flex items-center px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-500 to-blue-600 rounded-md shadow-md hover:shadow-lg transition-all hover:-translate-y-0.5 hover:from-blue-600 hover:to-blue-700"
               >
+                <FiUserPlus className="mr-1.5" />
                 Sign Up
               </button>
             </div>
           </div>
 
-          {/* Mobile menu toggle */}
+          {/* Mobile menu toggle with animated hamburger */}
           <div className="-mr-2 flex md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="inline-flex items-center justify-center p-2 rounded-md text-[#3a7bd5] hover:text-[#2a65b0] hover:bg-[#daeaff] focus:outline-none transition-colors"
+              className="inline-flex items-center justify-center p-2 rounded-md text-blue-600 hover:text-blue-700 hover:bg-blue-50 focus:outline-none transition-all"
             >
               <span className="sr-only">Open main menu</span>
-              {isOpen ? (
-                <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              )}
+              <div className="w-6 flex flex-col items-center">
+                <span className={`block h-0.5 w-6 bg-current transform transition duration-300 ${isOpen ? 'rotate-45 translate-y-1.5' : '-translate-y-0.5'}`} />
+                <span className={`block h-0.5 w-6 bg-current transition duration-300 mt-1 ${isOpen ? 'opacity-0' : 'opacity-100'}`} />
+                <span className={`block h-0.5 w-6 bg-current transform transition duration-300 ${isOpen ? '-rotate-45 -translate-y-1.5' : 'translate-y-0.5'}`} />
+              </div>
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile menu */}
-      {isOpen && (
-        <div className="md:hidden bg-[#edf2f7]">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <a href="#home" className="block px-3 py-2 rounded-md text-base font-medium text-[#3a7bd5] hover:text-[#2a65b0] hover:bg-[#daeaff]">
-              Home
-            </a>
-            <a href="#about" className="block px-3 py-2 rounded-md text-base font-medium text-[#3a7bd5] hover:text-[#2a65b0] hover:bg-[#daeaff]">
-              About
-            </a>
-            <a href="#contact" className="block px-3 py-2 rounded-md text-base font-medium text-[#3a7bd5] hover:text-[#2a65b0] hover:bg-[#daeaff]">
-              Contact Us
-            </a>
-          </div>
-          <div className="pt-4 pb-3 border-t border-gray-200">
-            <div className="flex items-center px-5 space-x-4">
-              <button
-                onClick={openLoginModal}
-                className="flex-1 text-[#3a7bd5] border border-[#3a7bd5] hover:border-[#2a65b0] hover:text-[#2a65b0] px-3 py-2 rounded-md text-sm font-medium"
-              >
-                Login
-              </button>
-              <button
-                onClick={openSignupModal}
-                className="flex-1 bg-[#3a7bd5] text-white hover:bg-[#2a65b0] px-4 py-1.5 rounded-md text-sm font-medium transition-colors shadow-md"
-              >
-                Sign Up
-              </button>
-            </div>
-          </div>
+      {/* Mobile menu with slide-down animation */}
+      <div className={`md:hidden bg-white/95 backdrop-blur-md overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-96' : 'max-h-0'}`}>
+        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+          {[
+            { id: 'home', label: 'Home', icon: <FiHome className="mr-2" /> },
+            { id: 'about', label: 'About', icon: <FiInfo className="mr-2" /> },
+            { id: 'contact', label: 'Contact', icon: <FiMail className="mr-2" /> }
+          ].map((item) => (
+            <button
+              key={item.id}
+              onClick={() => {
+                scrollToSection(item.id);
+                setIsOpen(false);
+              }}
+              className={`w-full flex items-center px-3 py-3 rounded-md text-base font-medium ${
+                activeSection === item.id ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-blue-50 hover:text-blue-500'
+              }`}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          ))}
         </div>
-      )}
+        <div className="pt-2 pb-4 border-t border-blue-100 px-3">
+          <button
+            onClick={() => {
+              openLoginModal();
+              setIsOpen(false);
+            }}
+            className="w-full flex items-center justify-center mb-3 px-4 py-2 border border-blue-500 text-blue-600 rounded-md hover:bg-blue-50 transition-colors"
+          >
+            <FiLogIn className="mr-2" />
+            Login
+          </button>
+          <button
+            onClick={() => {
+              openSignupModal();
+              setIsOpen(false);
+            }}
+            className="w-full flex items-center justify-center px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-md shadow hover:from-blue-600 hover:to-blue-700 transition-all"
+          >
+            <FiUserPlus className="mr-2" />
+            Sign Up
+          </button>
+        </div>
+      </div>
     </nav>
   );
 };
