@@ -14,7 +14,7 @@ const Dashboard = () => {
     if (activeTab === 'attendance') {
       fetchStudents();
     }
-  }, [activeTab, fetchStudents]);
+  }, [activeTab]);
 
   // Animation variants
   const tabContentVariants = {
@@ -148,10 +148,11 @@ const Dashboard = () => {
   {activeTab === 'students' && (
     <motion.div
       key="students"
-      initial={{ opacity: 0, y: 20 }}
+      layout
+      initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.5, ease: "easeInOut" }}
     >
       <StudentDirectory />
     </motion.div>
@@ -160,10 +161,11 @@ const Dashboard = () => {
   {activeTab === 'attendance' && (
     <motion.div
       key="attendance"
-      initial={{ opacity: 0, y: 20 }}
+      layout
+      initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.5, ease: "easeInOut" }}
     >
       <AttendanceDirectory />
     </motion.div>
@@ -172,11 +174,12 @@ const Dashboard = () => {
   {activeTab === 'grades' && (
     <motion.div
       key="grades"
+      layout
       className="p-8 text-center text-gray-500"
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.5, ease: "easeInOut" }}
     >
       Grades content will go here
     </motion.div>

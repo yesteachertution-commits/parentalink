@@ -48,7 +48,7 @@ const StudentDirectory = () => {
 
   const filteredStudents = selectedClass === 'All Classes'
     ? students
-    : students.filter(student => student.class === selectedClass);
+    : students.filter(student => student.classes === selectedClass);
 
   const handleEditClick = (student) => {
     setEditingStudent(student.id);
@@ -138,7 +138,7 @@ const StudentDirectory = () => {
                       <td className="px-6 py-4"><input name="fatherName" value={editFormData.fatherName} onChange={handleEditFormChange} className="w-full px-3 py-2 border rounded" /></td>
                       <td className="px-6 py-4"><input name="mobile" value={editFormData.mobile} onChange={handleEditFormChange} className="w-full px-3 py-2 border rounded" /></td>
                       <td className="px-6 py-4">
-                        <select name="class" value={editFormData.class} onChange={handleEditFormChange} className="w-full px-3 py-2 border rounded">
+                        <select name="class" value={editFormData.classes} onChange={handleEditFormChange} className="w-full px-3 py-2 border rounded">
                           {classes.filter(c => c !== 'All Classes').map((cls, i) => <option key={i} value={cls}>{cls}</option>)}
                         </select>
                       </td>
@@ -152,7 +152,7 @@ const StudentDirectory = () => {
                       <td className="px-6 py-4">{student.name}</td>
                       <td className="px-6 py-4">{student.fatherName}</td>
                       <td className="px-6 py-4">{student.mobile}</td>
-                      <td className="px-6 py-4">{student.class}</td>
+                      <td className="px-6 py-4">{student.classes}</td>
                       <td className="px-6 py-4">
                         <button onClick={() => handleEditClick(student)} className="text-blue-600 mr-4">Edit</button>
                         <button onClick={() => confirmDelete(student.id)} className="text-red-600">Delete</button>
