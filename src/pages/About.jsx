@@ -1,5 +1,9 @@
 import { image } from 'framer-motion/client';
 import React, { useEffect } from 'react';
+import muskan from '../assets/muskan.jpeg';
+import hemlo from '../assets/hemlo.jpeg'; 
+import sourav from '../assets/sourav.jpeg';
+import gourav from '../assets/gourav.jpeg';
 
 function About() {
   useEffect(() => {
@@ -70,25 +74,25 @@ function About() {
               name: 'Muskan Panwar', 
               role: 'CEO & Founder', 
               bio: 'Visionary leader with 15+ years in tech',
-              image: "src/assets/muskan.jpeg"
+              image: muskan
             },
             { 
               name: 'Hemlo', 
               role: 'CTO', 
               bio: 'Engineering expert and innovation driver',
-              image: "src/assets/hemlo.jpeg"
+              image: hemlo
             },
             { 
               name: 'Gaurav Sharma', 
               role: 'Design Director', 
               bio: 'Creativity meets functionality',
-              image: "src/assets/gourav.jpeg"
+              image: gourav
             },
             { 
               name: 'Sourav Singh', 
               role: 'Marketing Lead', 
               bio: 'Storyteller and brand strategist',
-              image: "src/assets/sourav.jpeg"
+              image: sourav
             }
           ].map((member, index) => (
             <div 
