@@ -5,6 +5,8 @@ import About from '../pages/About';
 import ContactUs from '../pages/ContactUs';
 import Login from '../models/Login'; // adjust path if needed
 import SignupModal from '../models/Signup'; // adjust path if needed
+import Features from '../pages/Features';
+import Footer from '../pages/Footer';
 
 const LandingPage = () => {
   const [activeSection, setActiveSection] = useState('home');
@@ -30,8 +32,10 @@ const LandingPage = () => {
 
       <main>
         <section id="home"><Home /></section>
+        <section id="features"><Features /></section>
         <section id="about"><About /></section>
         <section id="contact"><ContactUs /></section>
+        <section id="footer"><Footer /></section>
       </main>
     </div>
   );
