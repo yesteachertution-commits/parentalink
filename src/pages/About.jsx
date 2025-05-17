@@ -1,9 +1,8 @@
-import { image } from 'framer-motion/client';
 import React, { useEffect } from 'react';
-import muskan from '../assets/muskan.jpeg';
-import hemlo from '../assets/hemlo.jpeg'; 
-import sourav from '../assets/sourav.jpeg';
-import gourav from '../assets/gourav.jpeg';
+import muskan from '../../public/muskan.jpeg';
+import hemlo from '../../public/hemlo.jpeg'; 
+import sourav from '../../public/sourav.jpeg';
+import gourav from '../../public/gourav.jpeg';
 
 function About() {
   useEffect(() => {
