@@ -45,7 +45,10 @@ const StudentDirectory = () => {
   };
 
   const gradeClasses = Array.from({ length: 12 }, (_, i) => `Grade ${i + 1}`);
-  const classes = ['All Classes', ...gradeClasses, ...new Set(students.map(student => student.classes))];
+
+  // Combine gradeClasses and student classes, remove duplicates properly
+  const studentClasses = Array.from(new Set(students.map(s => s.classes)));
+  const classes = ['All Classes', ...Array.from(new Set([...gradeClasses, ...studentClasses]))];
 
   const filteredStudents = selectedClass === 'All Classes'
     ? students
@@ -81,9 +84,12 @@ const StudentDirectory = () => {
       );
       setStudents(updatedStudents);
       setEditingStudent(null);
+      setToastMessage('Student edited successfully!');
+      setTimeout(() => setToastMessage(''), 3000);  // Hide toast after 3 sec
     } catch (err) {
       console.error(err);
-      alert("Failed to update student.");
+      setToastMessage('Failed to update student.');
+      setTimeout(() => setToastMessage(''), 3000);
     }
   };
 
@@ -106,7 +112,8 @@ const StudentDirectory = () => {
       setTimeout(() => setToastMessage(''), 3000);  // Hide toast after 3 sec
     } catch (err) {
       console.error("Error deleting student:", err);
-      alert("Failed to delete student.");
+      setToastMessage('Failed to delete student.');
+      setTimeout(() => setToastMessage(''), 3000);
     }
   };
 
@@ -171,21 +178,51 @@ const StudentDirectory = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
+              {filteredStudents.length === 0 && (
+                <tr>
+                  <td colSpan="5" className="text-center text-gray-500 py-6">
+                    No students found for {selectedClass}.
+                  </td>
+                </tr>
+              )}
               {filteredStudents.map((student) => (
                 <React.Fragment key={student._id}>
                   {editingStudent === student._id ? (
                     <tr className="bg-blue-50">
                       <td className="px-6 py-4">
-                        <input name="name" value={editFormData.name} onChange={handleEditFormChange} className="w-full px-3 py-2 border rounded" />
+                        <input
+                          name="name"
+                          value={editFormData.name}
+                          onChange={handleEditFormChange}
+                          onKeyDown={(e) => e.key === 'Enter' && handleEditSubmit(student._id)}
+                          className="w-full px-3 py-2 border rounded"
+                        />
                       </td>
                       <td className="px-6 py-4">
-                        <input name="fatherName" value={editFormData.fatherName} onChange={handleEditFormChange} className="w-full px-3 py-2 border rounded" />
+                        <input
+                          name="fatherName"
+                          value={editFormData.fatherName}
+                          onChange={handleEditFormChange}
+                          onKeyDown={(e) => e.key === 'Enter' && handleEditSubmit(student._id)}
+                          className="w-full px-3 py-2 border rounded"
+                        />
                       </td>
                       <td className="px-6 py-4">
-                        <input name="mobile" value={editFormData.mobile} onChange={handleEditFormChange} className="w-full px-3 py-2 border rounded" />
+                        <input
+                          name="mobile"
+                          value={editFormData.mobile}
+                          onChange={handleEditFormChange}
+                          onKeyDown={(e) => e.key === 'Enter' && handleEditSubmit(student._id)}
+                          className="w-full px-3 py-2 border rounded"
+                        />
                       </td>
                       <td className="px-6 py-4">
-                        <select name="classes" value={editFormData.classes} onChange={handleEditFormChange} className="w-full px-3 py-2 border rounded">
+                        <select
+                          name="classes"
+                          value={editFormData.classes}
+                          onChange={handleEditFormChange}
+                          className="w-full px-3 py-2 border rounded"
+                        >
                           {classes.filter(c => c !== 'All Classes').map((cls, i) => (
                             <option key={i} value={cls}>{cls}</option>
                           ))}
@@ -242,22 +279,13 @@ const StudentDirectory = () => {
               initial={{ scale: 0.95, y: 10 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 10 }}
-              className="relative bg-white/95 p-6 rounded-xl shadow-xl max-w-md w-full mx-4 border border-blue-200"
+              className="relative bg-white rounded-lg shadow-xl p-6 max-w-sm w-full z-10 border border-blue-100"
             >
-              <h3 className="text-xl font-semibold text-gray-800 mb-3">Confirm Deletion</h3>
-              <p className="text-gray-600 mb-6">
-                Are you sure you want to delete {students.find(s => s._id === showDeleteConfirm)?.name}'s record?
-              </p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Confirm Delete</h3>
+              <p className="text-sm text-gray-600 mb-4">Are you sure you want to delete this student?</p>
               <div className="flex justify-end gap-3">
-                <button onClick={cancelDelete} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg">
-                  Cancel
-                </button>
-                <button
-                  onClick={() => deleteStudent(showDeleteConfirm)}
-                  className="px-4 py-2 bg-red-600 text-white rounded-lg"
-                >
-                  Delete
-                </button>
+                <button onClick={cancelDelete} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
+                <button onClick={() => deleteStudent(showDeleteConfirm)} className="px-4 py-2 text-white bg-red-500 rounded-lg">Delete</button>
               </div>
             </motion.div>
           </motion.div>

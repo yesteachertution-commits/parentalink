@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import AsyncStorage
- from '@react-native-async-storage/async-storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../context/AuthContext'; // ✅ Import AuthContext
+
 const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) => {
   const [formData, setFormData] = useState({
     name: '',
@@ -10,15 +11,15 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
     mobile: '',
     classes: ''
   });
-  const [loading, setLoading] = useState(false); // Track loading state
-  const [error, setError] = useState(''); // Track any error
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const { login } = useAuth(); // ✅ Access login from AuthContext
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-  
+
     if (name === "mobile") {
-      // Only keep digits
-      const numericValue = value.replace(/\D/g, '').slice(0, 10); // Enforce 10-digit max
+      const numericValue = value.replace(/\D/g, '').slice(0, 10);
       setFormData(prev => ({
         ...prev,
         [name]: numericValue
@@ -33,19 +34,22 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
 
   const handleSubmit = async (e) => {
     const backendUrl = import.meta.env.VITE_BACKEND_URL;
-
     e.preventDefault();
     setLoading(true);
     setError('');
-  
+
     try {
       const token = await AsyncStorage.getItem('token');
-  
+
+      if (token) {
+        await login(token); // ✅ Update AuthContext with user ID
+      }
+
       const payload = {
         ...formData,
         mobile: `+91${formData.mobile.trim()}`
       };
-  
+
       const response = await axios.post(
         `${backendUrl}/api/create/students`,
         payload,
@@ -56,9 +60,9 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
           }
         }
       );
-  
+    
       console.log("Student added:", response.data);
-      onAddStudent(payload); // Send the updated number
+      onAddStudent(response.data);
       onClose();
     } catch (err) {
       console.error("Error adding student:", err);
@@ -67,6 +71,7 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
       setLoading(false);
     }
   };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -76,7 +81,6 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
           exit={{ opacity: 0 }}
           className="fixed inset-0 flex items-center justify-center z-50"
         >
-          {/* Semi-transparent overlay */}
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.5 }}
@@ -84,8 +88,7 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
             className="absolute inset-0 bg-black"
             onClick={onClose}
           />
-          
-          {/* Modal content */}
+
           <motion.div
             initial={{ scale: 0.9, y: 20 }}
             animate={{ scale: 1, y: 0 }}
@@ -93,7 +96,7 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
             className="relative bg-white rounded-xl shadow-2xl p-6 max-w-md w-full mx-4"
           >
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Add New Student</h2>
-            
+
             <form onSubmit={handleSubmit}>
               <div className="space-y-4">
                 <div>
@@ -105,10 +108,10 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                     required
-                    placeholder='enter student name'
+                    placeholder='Enter student name'
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Father's Name</label>
                   <input
@@ -118,10 +121,10 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                     required
-                    placeholder='enter father name'
+                    placeholder='Enter father name'
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
                   <input
@@ -131,16 +134,13 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                     required
-                    placeholder='enter mobile number'
-                    
-inputMode="numeric"
-pattern="[0-9]*"
-                   
-        
+                    placeholder='Enter mobile number'
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                   />
+                  <p className="text-xs text-gray-500 mt-1">Enter 10-digit number</p>
                 </div>
-                <p className="text-xs text-gray-500 mt-1">Enter 10-digit number</p>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Class</label>
                   <select
@@ -149,7 +149,6 @@ pattern="[0-9]*"
                     onChange={handleChange}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
                     required
-                   
                   >
                     <option value="">Select a class</option>
                     {classOptions.map((cls, idx) => (
@@ -158,7 +157,7 @@ pattern="[0-9]*"
                   </select>
                 </div>
               </div>
-              
+
               {error && (
                 <div className="text-red-600 text-sm mt-2">{error}</div>
               )}
