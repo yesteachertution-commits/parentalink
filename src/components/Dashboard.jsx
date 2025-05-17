@@ -17,6 +17,12 @@ const Dashboard = () => {
             fetchStudents();
         }
     }, [activeTab]);
+    
+    useEffect(() => {
+        if (activeTab === 'students' || activeTab === 'attendance') {
+            fetchStudents();
+        }
+    }, []); // this runs on mount
 
     // Animation variants
     const tabContentVariants = {
