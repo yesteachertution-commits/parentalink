@@ -93,7 +93,7 @@ const StudentDirectory = () => {
   const deleteStudent = async (id) => {
     try {
       const token = await AsyncStorage.getItem('token');
-      await axios.delete(`http://localhost:5001/api/create/students/${id}`, {
+      await axios.delete(`${backendUrl}/api/create/students/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
