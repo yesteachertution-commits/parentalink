@@ -20,7 +20,6 @@ const StudentDirectory = () => {
 
   const [students, setStudents] = useState([]);
 
-  // Fetch students on mount
   useEffect(() => {
     const fetchStudents = async () => {
       try {
@@ -40,20 +39,19 @@ const StudentDirectory = () => {
   }, []);
 
   const handleAddStudent = (newStudent) => {
-    const newId = students.length > 0 ? Math.max(...students.map(s => s.id)) + 1 : 1;
-    setStudents([...students, { ...newStudent, id: newId }]);
+    setStudents([...students, newStudent]);
     setShowAddModal(false);
   };
 
   const gradeClasses = Array.from({ length: 12 }, (_, i) => `Grade ${i + 1}`);
-  const classes = ['All Classes', ...gradeClasses, ...new Set(students.map(student => student.class))];
+  const classes = ['All Classes', ...gradeClasses, ...new Set(students.map(student => student.classes))];
 
   const filteredStudents = selectedClass === 'All Classes'
     ? students
     : students.filter(student => student.classes === selectedClass);
 
   const handleEditClick = (student) => {
-    setEditingStudent(student.id);
+    setEditingStudent(student._id);
     setEditFormData({
       name: student.name,
       fatherName: student.fatherName,
@@ -67,18 +65,31 @@ const StudentDirectory = () => {
     setEditFormData({ ...editFormData, [name]: value });
   };
 
-  const handleEditSubmit = (id) => {
-    const updatedStudents = students.map(student =>
-      student.id === id ? { ...student, ...editFormData } : student
-    );
-    setStudents(updatedStudents);
-    setEditingStudent(null);
+  const handleEditSubmit = async (id) => {
+    try {
+      const token = await AsyncStorage.getItem('token');
+      await axios.put(`${backendUrl}/api/create/students/${id}`, editFormData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const updatedStudents = students.map(student =>
+        student._id === id ? { ...student, ...editFormData } : student
+      );
+      setStudents(updatedStudents);
+      setEditingStudent(null);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to update student.");
+    }
   };
 
   const confirmDelete = (id) => setShowDeleteConfirm(id);
   const cancelDelete = () => setShowDeleteConfirm(null);
   const deleteStudent = (id) => {
-    setStudents(students.filter(student => student.id !== id));
+    setStudents(students.filter(student => student._id !== id));
     setShowDeleteConfirm(null);
   };
 
@@ -87,17 +98,15 @@ const StudentDirectory = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h2 className="text-2xl font-semibold text-gray-800">Student Directory</h2>
         <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-          <div className="relative flex-1">
-            <select
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-              className="block w-full px-4 py-2 border border-blue-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700"
-            >
-              {classes.map((cls, index) => (
-                <option key={index} value={cls}>{cls}</option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={selectedClass}
+            onChange={(e) => setSelectedClass(e.target.value)}
+            className="block w-full px-4 py-2 border border-blue-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700"
+          >
+            {classes.map((cls, index) => (
+              <option key={index} value={cls}>{cls}</option>
+            ))}
+          </select>
           <button
             onClick={() => setShowAddModal(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition whitespace-nowrap shadow-md hover:shadow-lg"
@@ -133,19 +142,27 @@ const StudentDirectory = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredStudents.map((student) => (
-                <React.Fragment key={student.id}>
-                  {editingStudent === student.id ? (
+                <React.Fragment key={student._id}>
+                  {editingStudent === student._id ? (
                     <tr className="bg-blue-50">
-                      <td className="px-6 py-4"><input name="name" value={editFormData.name} onChange={handleEditFormChange} className="w-full px-3 py-2 border rounded" /></td>
-                      <td className="px-6 py-4"><input name="fatherName" value={editFormData.fatherName} onChange={handleEditFormChange} className="w-full px-3 py-2 border rounded" /></td>
-                      <td className="px-6 py-4"><input name="mobile" value={editFormData.mobile} onChange={handleEditFormChange} className="w-full px-3 py-2 border rounded" /></td>
                       <td className="px-6 py-4">
-                        <select name="class" value={editFormData.classes} onChange={handleEditFormChange} className="w-full px-3 py-2 border rounded">
-                          {classes.filter(c => c !== 'All Classes').map((cls, i) => <option key={i} value={cls}>{cls}</option>)}
+                        <input name="name" value={editFormData.name} onChange={handleEditFormChange} className="w-full px-3 py-2 border rounded" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <input name="fatherName" value={editFormData.fatherName} onChange={handleEditFormChange} className="w-full px-3 py-2 border rounded" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <input name="mobile" value={editFormData.mobile} onChange={handleEditFormChange} className="w-full px-3 py-2 border rounded" />
+                      </td>
+                      <td className="px-6 py-4">
+                        <select name="classes" value={editFormData.classes} onChange={handleEditFormChange} className="w-full px-3 py-2 border rounded">
+                          {classes.filter(c => c !== 'All Classes').map((cls, i) => (
+                            <option key={i} value={cls}>{cls}</option>
+                          ))}
                         </select>
                       </td>
                       <td className="px-6 py-4">
-                        <button onClick={() => handleEditSubmit(student.id)} className="text-green-600 mr-3">Save</button>
+                        <button onClick={() => handleEditSubmit(student._id)} className="text-green-600 mr-3">Save</button>
                         <button onClick={() => setEditingStudent(null)} className="text-gray-600">Cancel</button>
                       </td>
                     </tr>
@@ -157,7 +174,7 @@ const StudentDirectory = () => {
                       <td className="px-6 py-4">{student.classes}</td>
                       <td className="px-6 py-4">
                         <button onClick={() => handleEditClick(student)} className="text-blue-600 mr-4">Edit</button>
-                        <button onClick={() => confirmDelete(student.id)} className="text-red-600">Delete</button>
+                        <button onClick={() => confirmDelete(student._id)} className="text-red-600">Delete</button>
                       </td>
                     </tr>
                   )}
@@ -199,7 +216,7 @@ const StudentDirectory = () => {
             >
               <h3 className="text-xl font-semibold text-gray-800 mb-3">Confirm Deletion</h3>
               <p className="text-gray-600 mb-6">
-                Are you sure you want to delete {students.find(s => s.id === showDeleteConfirm)?.name}'s record?
+                Are you sure you want to delete {students.find(s => s._id === showDeleteConfirm)?.name}'s record?
               </p>
               <div className="flex justify-end gap-3">
                 <button onClick={cancelDelete} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg">
