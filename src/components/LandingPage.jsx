@@ -3,8 +3,8 @@ import Navbar from './Navbar';
 import Home from '../pages/Home';
 import About from '../pages/About';
 import ContactUs from '../pages/ContactUs';
-import Login from '../models/Login'; // adjust path if needed
-import SignupModal from '../models/Signup'; // adjust path if needed
+import Login from '../pages/Login'; // adjust path if needed
+import SignupModal from '../pages/Signup'; // adjust path if needed
 import Features from '../pages/Features';
 import Footer from '../pages/Footer';
 
@@ -26,9 +26,6 @@ const LandingPage = () => {
         openLoginModal={() => setIsLoginOpen(true)}
         openSignupModal={() => setIsSignupOpen(true)}
       />
-
-      <Login isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
-      <SignupModal isOpen={isSignupOpen} onClose={() => setIsSignupOpen(false)} />
 
       <main>
         <section id="home"><Home /></section>

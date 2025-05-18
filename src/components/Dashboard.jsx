@@ -17,7 +17,7 @@ const Dashboard = () => {
             fetchStudents();
         }
     }, [activeTab]);
-    
+
     useEffect(() => {
         if (activeTab === 'students' || activeTab === 'attendance') {
             fetchStudents();
@@ -149,7 +149,7 @@ const Dashboard = () => {
                 </div>
 
                 {/* Content with Animation */}
-                <div className="bg-white rounded-xl shadow-xl overflow-hidden border border-gray-100">
+                <div className="bg-[#eef6ff] rounded-xl shadow-xl overflow-hidden border border-gray-100">
                     <div className="p-4 md:p-8">
                         <AnimatePresence mode="wait">
                             {activeTab === 'students' && (

@@ -1,66 +1,105 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback
+} from "react";
 import { jwtDecode } from "jwt-decode";
+
 const AuthContext = createContext();
+
+const manualJwtDecode = (token) => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    throw new Error('Invalid token');
+  }
+};
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [token, setToken] = useState(null);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  const login = async (token) => {
+  const decodeToken = useCallback((token) => {
     try {
-      await AsyncStorage.setItem("token", token); // Storing token in AsyncStorage
-      const decoded = jwtDecode(token);
+      return jwtDecode(token);
+    } catch {
+      return manualJwtDecode(token);
+    }
+  }, []);
+
+  const logout = useCallback(() => {
+    localStorage.removeItem("token");
+    setUser(null);
+    setToken(null);
+  }, []);
+
+  const login = useCallback((tokenValue) => {
+    localStorage.setItem("token", tokenValue);
+    setToken(tokenValue);
+    try {
+      const decoded = decodeToken(tokenValue);
       setUser({
         id: decoded.id,
         name: decoded.name,
-        email: decoded.email,
+        email: decoded.email
       });
-    } catch (err) {
-      console.error("Error storing token during login:", err);
-      setUser(null);
+    } catch {
+      logout();
     }
-  };
-
-  const logout = async () => {
-    try {
-      await AsyncStorage.removeItem("token"); // Removing token from AsyncStorage
-      setUser(null);
-    } catch (err) {
-      console.error("Error during logout:", err);
-    }
-  };
-
-  // ✅ Function to update specific user fields (like name)
-  const updateUser = (newData) => {
-    setUser((prev) => ({ ...prev, ...newData }));
-  };
+  }, [decodeToken, logout]);
 
   useEffect(() => {
-    const fetchToken = async () => {
-      const token = await AsyncStorage.getItem("token");
-      if (token) {
-        try {
-          const decoded = jwtDecode(token);
-          if (decoded.exp * 1000 < Date.now()) {
-            logout(); // Token expired
-          } else {
-            setUser({
-              id: decoded.id,
-              name: decoded.name,
-              email: decoded.email,
-            });
-          }
-        } catch (err) {
-          logout(); // Invalid token
-        }
-      }
-    };
+    if (isInitialized) return;
 
-    fetchToken();
-  }, []);
+    try {
+      localStorage.setItem("authTest", "test");
+      localStorage.removeItem("authTest");
+    } catch {
+      setIsInitialized(true);
+      return;
+    }
+
+    const storedToken = localStorage.getItem("token");
+
+    if (storedToken) {
+      try {
+        const decoded = decodeToken(storedToken);
+
+        if (decoded.exp * 1000 < Date.now()) {
+          localStorage.removeItem("token");
+          setUser(null);
+          setToken(null);
+        } else {
+          setToken(storedToken);
+          setUser({
+            id: decoded.id,
+            name: decoded.name,
+            email: decoded.email
+          });
+        }
+      } catch {
+        localStorage.removeItem("token");
+        setUser(null);
+        setToken(null);
+      }
+    }
+
+    setIsInitialized(true);
+  }, [decodeToken, isInitialized]);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, token, login, logout, isInitialized }}>
       {children}
     </AuthContext.Provider>
   );
