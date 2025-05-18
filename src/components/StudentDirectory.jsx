@@ -16,13 +16,18 @@ const StudentDirectory = () => {
     mobile: '',
     classes: ''
   });
-
   const [students, setStudents] = useState([]);
-  const [toastMessage, setToastMessage] = useState(''); // <-- Toast state
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState({
+    show: false,
+    message: '',
+    type: 'success' // 'success' or 'error'
+  });
 
   useEffect(() => {
     const fetchStudents = async () => {
       try {
+        setLoading(true);
         const token = localStorage.getItem('token');
         const response = await axios.get(`${backendUrl}/api/create/students`, {
           headers: {
@@ -32,20 +37,29 @@ const StudentDirectory = () => {
         setStudents(response.data);
       } catch (err) {
         console.error("Failed to fetch students:", err);
+        showToast('Failed to fetch students', 'error');
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchStudents();
   }, [backendUrl]);
 
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ ...toast, show: false });
+    }, 3000);
+  };
+
   const handleAddStudent = (newStudent) => {
     setStudents([...students, newStudent]);
     setShowAddModal(false);
+    showToast('Student added successfully!');
   };
 
   const gradeClasses = Array.from({ length: 12 }, (_, i) => `Grade ${i + 1}`);
-
-  // Combine gradeClasses and student classes, remove duplicates properly
   const studentClasses = Array.from(new Set(students.map(s => s.classes)));
   const classes = ['All Classes', ...Array.from(new Set([...gradeClasses, ...studentClasses]))];
 
@@ -70,6 +84,7 @@ const StudentDirectory = () => {
 
   const handleEditSubmit = async (id) => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('token');
       await axios.put(`${backendUrl}/api/create/students/${id}`, editFormData, {
         headers: {
@@ -83,12 +98,12 @@ const StudentDirectory = () => {
       );
       setStudents(updatedStudents);
       setEditingStudent(null);
-      setToastMessage('Student edited successfully!');
-      setTimeout(() => setToastMessage(''), 3000);  // Hide toast after 3 sec
+      showToast('Student updated successfully!');
     } catch (err) {
       console.error(err);
-      setToastMessage('Failed to update student.');
-      setTimeout(() => setToastMessage(''), 3000);
+      showToast('Failed to update student', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -97,6 +112,7 @@ const StudentDirectory = () => {
 
   const deleteStudent = async (id) => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('token');
       await axios.delete(`${backendUrl}/api/create/students/${id}`, {
         headers: {
@@ -106,13 +122,12 @@ const StudentDirectory = () => {
       });
       setStudents(students.filter(student => student._id !== id));
       setShowDeleteConfirm(null);
-
-      setToastMessage('Student deleted successfully!');
-      setTimeout(() => setToastMessage(''), 3000);  // Hide toast after 3 sec
+      showToast('Student deleted successfully!');
     } catch (err) {
       console.error("Error deleting student:", err);
-      setToastMessage('Failed to delete student.');
-      setTimeout(() => setToastMessage(''), 3000);
+      showToast('Failed to delete student', 'error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -124,10 +139,35 @@ const StudentDirectory = () => {
       transition={{ duration: 0.4 }}
       className="space-y-6"
     >
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="fixed top-4 right-4 bg-green-500 text-white px-4 py-2 rounded shadow-md z-50">
-          {toastMessage}
+      {/* Modern Toast Notification */}
+      <AnimatePresence>
+        {toast.show && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className={`fixed top-4 right-4 px-6 py-3 rounded-md shadow-lg z-50 ${
+              toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+            } text-white flex items-center`}
+          >
+            <span>{toast.message}</span>
+            <button
+              onClick={() => setToast({ ...toast, show: false })}
+              className="ml-4 text-white hover:text-gray-200"
+            >
+              ✕
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Loading Overlay - Only shown for delete operations */}
+      {loading && showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="flex flex-col items-center">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-2"></div>
+            <p className="text-white font-medium">Processing...</p>
+          </div>
         </div>
       )}
 
@@ -194,7 +234,7 @@ const StudentDirectory = () => {
                           value={editFormData.name}
                           onChange={handleEditFormChange}
                           onKeyDown={(e) => e.key === 'Enter' && handleEditSubmit(student._id)}
-                          className="w-full px-3 py-2 border rounded"
+                          className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                       </td>
                       <td className="px-6 py-4">
@@ -203,7 +243,7 @@ const StudentDirectory = () => {
                           value={editFormData.fatherName}
                           onChange={handleEditFormChange}
                           onKeyDown={(e) => e.key === 'Enter' && handleEditSubmit(student._id)}
-                          className="w-full px-3 py-2 border rounded"
+                          className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                       </td>
                       <td className="px-6 py-4">
@@ -212,7 +252,7 @@ const StudentDirectory = () => {
                           value={editFormData.mobile}
                           onChange={handleEditFormChange}
                           onKeyDown={(e) => e.key === 'Enter' && handleEditSubmit(student._id)}
-                          className="w-full px-3 py-2 border rounded"
+                          className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                       </td>
                       <td className="px-6 py-4">
@@ -220,7 +260,7 @@ const StudentDirectory = () => {
                           name="classes"
                           value={editFormData.classes}
                           onChange={handleEditFormChange}
-                          className="w-full px-3 py-2 border rounded"
+                          className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         >
                           {classes.filter(c => c !== 'All Classes').map((cls, i) => (
                             <option key={i} value={cls}>{cls}</option>
@@ -228,8 +268,28 @@ const StudentDirectory = () => {
                         </select>
                       </td>
                       <td className="px-6 py-4">
-                        <button onClick={() => handleEditSubmit(student._id)} className="text-green-600 mr-3">Save</button>
-                        <button onClick={() => setEditingStudent(null)} className="text-gray-600">Cancel</button>
+                        <button 
+                          onClick={() => handleEditSubmit(student._id)}
+                          className="text-green-600 mr-3 hover:text-green-800"
+                          disabled={loading}
+                        >
+                          {loading && editingStudent === student._id ? (
+                            <>
+                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-green-600 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                              Saving...
+                            </>
+                          ) : 'Save'}
+                        </button>
+                        <button 
+                          onClick={() => setEditingStudent(null)}
+                          className="text-gray-600 hover:text-gray-800"
+                          disabled={loading}
+                        >
+                          Cancel
+                        </button>
                       </td>
                     </tr>
                   ) : (
@@ -239,8 +299,18 @@ const StudentDirectory = () => {
                       <td className="px-6 py-4">{student.mobile}</td>
                       <td className="px-6 py-4">{student.classes}</td>
                       <td className="px-6 py-4">
-                        <button onClick={() => handleEditClick(student)} className="text-blue-600 mr-4">Edit</button>
-                        <button onClick={() => confirmDelete(student._id)} className="text-red-600">Delete</button>
+                        <button 
+                          onClick={() => handleEditClick(student)} 
+                          className="text-blue-600 mr-4 hover:text-blue-800"
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          onClick={() => confirmDelete(student._id)} 
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          Delete
+                        </button>
                       </td>
                     </tr>
                   )}
@@ -283,8 +353,28 @@ const StudentDirectory = () => {
               <h3 className="text-lg font-medium text-gray-900 mb-2">Confirm Delete</h3>
               <p className="text-sm text-gray-600 mb-4">Are you sure you want to delete this student?</p>
               <div className="flex justify-end gap-3">
-                <button onClick={cancelDelete} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg">Cancel</button>
-                <button onClick={() => deleteStudent(showDeleteConfirm)} className="px-4 py-2 text-white bg-red-500 rounded-lg">Delete</button>
+                <button 
+                  onClick={cancelDelete} 
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                  disabled={loading}
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={() => deleteStudent(showDeleteConfirm)} 
+                  className="px-4 py-2 text-white bg-red-500 rounded-lg hover:bg-red-600 flex items-center justify-center min-w-20"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Deleting...
+                    </>
+                  ) : 'Delete'}
+                </button>
               </div>
             </motion.div>
           </motion.div>
