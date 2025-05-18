@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext'; // ✅ Import AuthContext
 
 const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) => {
@@ -39,7 +38,7 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
     setError('');
 
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = localStorage.getItem('token');
 
       if (token) {
         await login(token); // ✅ Update AuthContext with user ID

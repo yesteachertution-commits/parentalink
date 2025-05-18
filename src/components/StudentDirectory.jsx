@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AddStudentModal from '../models/AddStudentModal';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
 const StudentDirectory = () => {
@@ -24,7 +23,7 @@ const StudentDirectory = () => {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const token = await AsyncStorage.getItem('token');
+        const token = localStorage.getItem('token');
         const response = await axios.get(`${backendUrl}/api/create/students`, {
           headers: {
             Authorization: `Bearer ${token}`
@@ -71,7 +70,7 @@ const StudentDirectory = () => {
 
   const handleEditSubmit = async (id) => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = localStorage.getItem('token');
       await axios.put(`${backendUrl}/api/create/students/${id}`, editFormData, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -98,7 +97,7 @@ const StudentDirectory = () => {
 
   const deleteStudent = async (id) => {
     try {
-      const token = await AsyncStorage.getItem('token');
+      const token = localStorage.getItem('token');
       await axios.delete(`${backendUrl}/api/create/students/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,

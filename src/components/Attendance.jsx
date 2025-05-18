@@ -3,7 +3,7 @@ import { StudentContext } from '../context/StudentContext';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { FiCheckCircle, FiXCircle, FiSend } from 'react-icons/fi';
+import { FiCheckCircle, FiXCircle, FiSend ,FiSave} from 'react-icons/fi';
 
 const AttendanceDirectory = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
@@ -45,9 +45,95 @@ const AttendanceDirectory = () => {
     });
 
     setStudents(updatedStudents);
+    
   };
 
+  const handleSaveAttendance = async() =>{
+    const token = localStorage.getItem('token');
+    const unmarkedStudents = filteredStudents.filter(
+      student => !student.attendance?.[selectedDate]
+    );
+  
+    if (unmarkedStudents.length > 0) {
+      alert("Please mark attendance for all students before saving.");
+      return; // Stop the function if any attendance is unmarked
+    }
+    try {
+      const payload = {
+        date: selectedDate,
+        students: filteredStudents.map(student => ({
+          id: student.id,
+          name: student.name,
+          fatherName: student.fatherName,
+          mobile: student.mobile,
+          classes: student.classes,
+          attendance: student.attendance?.[selectedDate],
+        }))
+      };
+      await axios.post(
+        "http://localhost:5001/api/save/attendance",
+        payload, // 👈 This is your request body (data)
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // 👈 Include token here
+            "Content-Type": "application/json",
+          },
+        }
+      );
+      toast.success(
+        <div className="flex items-center space-x-2">
+          <FiCheckCircle className="text-green-500 text-xl flex-shrink-0" />
+          <div>
+            <p className="font-medium">Attendance Saved Successfully!</p>
+            <p className="text-sm text-gray-600">Attendance has been saved</p>
+          </div>
+        </div>,
+        {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: true,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          className: "border border-green-200 bg-white shadow-lg rounded-lg",
+          bodyClassName: "p-4",
+        }
+      );
+    } catch (error) {
+      console.error(error);
+      toast.error(
+        <div className="flex items-center space-x-2">
+          <FiXCircle className="text-red-500 text-xl flex-shrink-0" />
+          <div>
+            <p className="font-medium">Failed to Save Attendance</p>
+            <p className="text-sm text-gray-600">Please try again later</p>
+          </div>
+        </div>,
+        {
+          position: "top-center",
+          autoClose: 3000,
+          hideProgressBar: true,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          progress: undefined,
+          className: "border border-red-200 bg-white shadow-lg rounded-lg",
+          bodyClassName: "p-4",
+        }
+      );
+    }
+  }
+
   const handleOpenMarkAttendance = async () => {
+    const unmarkedStudents = filteredStudents.filter(
+      student => !student.attendance?.[selectedDate]
+    );
+  
+    if (unmarkedStudents.length > 0) {
+      alert("Please mark attendance for all students before saving.");
+      return; // Stop the function if any attendance is unmarked
+    }
     try {
         const payload = {
             date: selectedDate, // ✅ New field added here
@@ -55,7 +141,7 @@ const AttendanceDirectory = () => {
               name: student.name,
               mobile: student.mobile,
               classes: student.classes,
-              attendance: student.attendance?.[selectedDate] || 'Not Marked',
+              attendance: student.attendance?.[selectedDate],
             }))
       };
 
@@ -140,6 +226,13 @@ const AttendanceDirectory = () => {
             onChange={(e) => setSelectedDate(e.target.value)}
             className="px-4 py-2 border border-blue-200 rounded-lg shadow-sm bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
           />
+          <button
+            onClick={handleSaveAttendance}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md flex items-center space-x-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          >
+            <FiSave className="text-lg" />
+            <span>Save attendance</span>
+          </button>
 
           <button
             onClick={handleOpenMarkAttendance}
