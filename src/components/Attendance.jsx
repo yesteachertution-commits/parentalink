@@ -4,12 +4,15 @@ import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FiCheckCircle, FiXCircle, FiSend, FiSave } from 'react-icons/fi';
+import { motion } from 'framer-motion';
 
 const AttendanceDirectory = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const { students, setStudents } = useContext(StudentContext);
   const [selectedClass, setSelectedClass] = useState('All Classes');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isNotifying, setIsNotifying] = useState(false);
 
   const gradeClasses = Array.from({ length: 12 }, (_, i) => `Grade ${i + 1}`);
   const classes = ['All Classes', ...gradeClasses, ...new Set(students.map(student => student.classes).filter(Boolean))];
@@ -57,6 +60,7 @@ const AttendanceDirectory = () => {
       return;
     }
 
+    setIsSaving(true);
     try {
       const payload = {
         date: selectedDate,
@@ -116,6 +120,8 @@ const AttendanceDirectory = () => {
           bodyClassName: "p-4",
         }
       );
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -129,6 +135,7 @@ const AttendanceDirectory = () => {
       return;
     }
 
+    setIsNotifying(true);
     try {
       const payload = {
         date: selectedDate,
@@ -181,6 +188,8 @@ const AttendanceDirectory = () => {
           bodyClassName: "p-4",
         }
       );
+    } finally {
+      setIsNotifying(false);
     }
   };
 
@@ -205,24 +214,69 @@ const AttendanceDirectory = () => {
             onChange={(e) => setSelectedDate(e.target.value)}
             className="px-4 py-2 border border-blue-200 rounded-lg shadow-sm bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           />
-           <button
-  onClick={handleSaveAttendance}
-  className="w-full sm:w-auto px-3 py-2 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md flex justify-center items-center space-x-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
->
-  <FiSave className="text-lg" />
-  <span className="text-center">Save Attendance</span>
-</button>
+          <button
+            onClick={handleSaveAttendance}
+            disabled={isSaving}
+            className="w-full sm:w-auto px-3 py-2 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md flex justify-center items-center space-x-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base relative overflow-hidden"
+          >
+            {isSaving ? (
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                  className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
+                />
+                <span>Saving...</span>
+              </>
+            ) : (
+              <>
+                <FiSave className="text-lg" />
+                <span className="text-center">Save Attendance</span>
+              </>
+            )}
+            {isSaving && (
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: '100%' }}
+                transition={{ duration: 2, ease: "linear" }}
+                className="absolute bottom-0 left-0 h-1 bg-blue-400"
+              />
+            )}
+          </button>
 
-<button
-  onClick={handleOpenMarkAttendance}
-  className="w-full sm:w-auto px-3 py-2 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md flex justify-center items-center space-x-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base"
->
-  <FiSend className="text-lg" />
-  <span className="text-center">Notify Marks</span>
-</button>
+          <button
+            onClick={handleOpenMarkAttendance}
+            disabled={isNotifying}
+            className="w-full sm:w-auto px-3 py-2 sm:px-4 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md flex justify-center items-center space-x-2 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm sm:text-base relative overflow-hidden"
+          >
+            {isNotifying ? (
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                  className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
+                />
+                <span>Notifying...</span>
+              </>
+            ) : (
+              <>
+                <FiSend className="text-lg" />
+                <span className="text-center">Notify Marks</span>
+              </>
+            )}
+            {isNotifying && (
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: '100%' }}
+                transition={{ duration: 2, ease: "linear" }}
+                className="absolute bottom-0 left-0 h-1 bg-blue-400"
+              />
+            )}
+          </button>
         </div>
       </div>
 
+      {/* Rest of your component remains the same */}
       <div className="bg-blue-50 p-4 rounded-lg flex justify-between border border-blue-100">
         <div>
           <h3 className="font-medium text-blue-800">Showing {filteredStudents.length} students</h3>
@@ -257,24 +311,22 @@ const AttendanceDirectory = () => {
                   <td className="px-4 py-4 text-sm text-gray-500 hidden md:table-cell">{student.fatherName}</td>
                   <td className="px-4 py-4 text-sm text-gray-500 hidden md:table-cell">{student.mobile}</td>
                   <td className="px-4 py-4">
-                    <span className={`px-2 py-1 whitespace-nowrap inline-flex text-xs font-semibold rounded-full ${
-                      isPresent
+                    <span className={`px-2 py-1 whitespace-nowrap inline-flex text-xs font-semibold rounded-full ${isPresent
                         ? 'bg-green-100 text-green-800'
                         : attendanceStatus === 'Absent'
                           ? 'bg-red-100 text-red-800'
                           : 'bg-gray-100 text-gray-800'
-                    }`}>
+                      }`}>
                       {attendanceStatus}
                     </span>
                   </td>
                   <td className="px-4 py-4 ">
                     <button
                       onClick={() => handleToggleAttendance(student.id)}
-                      className={`w-full sm:w-auto px-1  py-0.5 md:py-2 rounded-md text-sm font-medium flex items-center justify-center space-x-1 ${
-                        isPresent
+                      className={`w-full sm:w-auto px-1  py-0.5 md:py-2 rounded-md text-sm font-medium flex items-center justify-center space-x-1 ${isPresent
                           ? 'bg-red-500 hover:bg-red-600 text-white'
                           : 'bg-green-500 hover:bg-green-600 text-white'
-                      }`}
+                        }`}
                     >
                       {isPresent ? (
                         <>

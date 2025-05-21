@@ -1,321 +1,378 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { ToastContainer, toast, Bounce } from "react-toastify";
-import Confetti from "react-confetti";
-import "react-toastify/dist/ReactToastify.css";
+import React, { useState } from 'react';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
 
 const SignupPage = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const { login, token } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
+  const [formData, setFormData] = useState({ 
+    email: '', 
+    otp: '',
+    name: '',
+    password: '',
+    confirmPassword: ''
   });
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [showConfetti, setShowConfetti] = useState(false);
-
-  // Color theme
-  const theme = {
-    primary: "#3a7bd5",
-    primaryDark: "#2a65b0",
-    secondary: "#00d2ff",
-    light: "#f8fafc",
-    dark: "#0f172a",
-  };
-
-  useEffect(() => {
-    if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-    } else {
-      delete axios.defaults.headers.common["Authorization"];
-    }
-  }, [token]);
-
-  useEffect(() => {
-    let interval;
-    if (loading) {
-      interval = setInterval(() => {
-        setProgress((prev) => {
-          if (prev >= 95) return 95; // Don't go to 100% until completion
-          return prev + Math.random() * 10;
-        });
-      }, 300);
-    } else {
-      setProgress(0);
-      clearInterval(interval);
-    }
-    return () => clearInterval(interval);
-  }, [loading]);
+  const [step, setStep] = useState(1); // 1: email, 2: OTP, 3: signup
+  const [otpSent, setOtpSent] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
 
   const handleChange = (e) => {
     setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [e.target.name]: e.target.value
     }));
   };
 
-  const showSuccessToast = () => {
-    toast.success(
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center"
-      >
-        <svg
-          className="w-5 h-5 mr-2"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M5 13l4 4L19 7"
-          />
-        </svg>
-        <span>Account created successfully! Redirecting...</span>
-      </motion.div>,
-      {
-        position: "top-center",
-        autoClose: 2500,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-        style: {
-          background: theme.primary,
-          color: "white",
-          fontWeight: "500",
-          borderRadius: "12px",
-          boxShadow: "0 4px 12px rgba(58, 123, 213, 0.3)",
-        },
-        progressStyle: { background: theme.primaryDark },
-      }
-    );
+  const handleSendOtp = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      await axios.post(`http://localhost:5001/api/email-otp/send-otp`, { email: formData.email });
+      setOtpSent(true);
+      setStep(2);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to send OTP.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      await axios.post(`http://localhost:5001/api/email-otp/verify-otp`, {
+        email: formData.email,
+        otp: formData.otp
+      });
+      setEmailVerified(true);
+      setStep(3);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Invalid OTP. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSignup = async (e) => {
     e.preventDefault();
-    setError("");
-    setProgress(0);
-
+    setError('');
+    
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match.");
+      setError('Passwords do not match');
       return;
     }
 
+    setLoading(true);
+
     try {
-      setLoading(true);
       const res = await axios.post(`${backendUrl}/api/user/signup`, {
         name: formData.name,
         email: formData.email,
-        password: formData.password,
+        password: formData.password
       });
-
-      const token = res.data.token;
-      login(token);
-
-      // Complete the progress bar
-      setProgress(100);
-      showSuccessToast();
-
-      // Show confetti for 3 seconds
-      setShowConfetti(true);
-      setTimeout(() => setShowConfetti(false), 3000);
-
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 2500);
+      login(res.data.token);
+      navigate('/dashboard');
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.message || "Signup failed. Please try again.");
-      setProgress(0);
+      setError(err.response?.data?.message || 'Signup failed.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 p-4 sm:p-6 relative">
-      <ToastContainer
-        transition={Bounce}
-        toastClassName="!bg-white !text-gray-800 !shadow-lg !rounded-xl"
-        progressClassName="!bg-gradient-to-r from-blue-400 to-blue-600"
-      />
-
-      {showConfetti && (
-        <Confetti
-          width={window.innerWidth}
-          height={window.innerHeight}
-          numberOfPieces={300}
-          recycle={false}
-        />
-      )}
-
-      <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100 relative z-10"
-      >
-        <div className="flex justify-center mb-6">
-          <div className="w-14 h-14 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-md">
-            <svg
-              className="w-6 h-6 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-              />
-            </svg>
+    <div className="min-h-screen flex bg-gradient-to-br from-blue-50 to-indigo-50">
+      {/* Left side - Illustration */}
+      <div className="hidden lg:flex w-1/2">
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+          className="flex flex-col items-center justify-center w-full bg-white p-12 rounded-l-2xl shadow-xl border-r border-gray-100"
+        >
+          <div className="mb-8 text-center">
+            <h3 className="text-3xl font-bold text-gray-800">
+              {step === 1 && 'Verify Your Email'}
+              {step === 2 && 'Enter Verification Code'}
+              {step === 3 && 'Complete Your Profile'}
+            </h3>
+            <p className="text-gray-600 mt-4 text-lg">
+              {step === 1 && 'We\'ll send a verification code to your email.'}
+              {step === 2 && 'Check your inbox for the 6-digit code.'}
+              {step === 3 && 'Just a few more details to get started.'}
+            </p>
           </div>
-        </div>
-
-        <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">
-          Create Account
-        </h2>
-        <p className="text-center text-gray-500 mb-6">Join us to get started</p>
-
-        <form className="space-y-4" onSubmit={handleSignup}>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Full Name
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-              placeholder="John Doe"
+          <div className="w-full max-w-md">
+            <img 
+              src={
+                step === 1 ? "public/email-verification.svg" :
+                step === 2 ? "public/otp-verification.svg" :
+                "public/signup-complete.svg"
+              } 
+              alt="Signup illustration" 
+              className="w-full h-auto object-contain"
             />
           </div>
+        </motion.div>
+      </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-              placeholder="you@example.com"
-            />
+      {/* Right side - Form */}
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8">
+        <motion.div 
+          key={step}
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.3 }}
+          className="bg-white p-8 rounded-r-2xl lg:rounded-l-none rounded-2xl shadow-xl w-full max-w-md border border-gray-100 relative overflow-hidden"
+        >
+          <div className="flex justify-center mb-6">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-lg ${
+              step === 3 ? 'bg-blue-500' : 'bg-gradient-to-r from-blue-400 to-blue-600'
+            }`}>
+              {step === 3 ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" />
+                </svg>
+              )}
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-              placeholder="••••••••"
-            />
-          </div>
+          <h2 className="text-3xl font-bold text-center text-gray-800 mb-2">
+            {step === 1 && 'Start with your email'}
+            {step === 2 && 'Verify your email'}
+            {step === 3 && 'Complete signup'}
+          </h2>
+          
+          <p className="text-center text-gray-500 mb-6">
+            {step === 1 && 'We\'ll send a verification code'}
+            {step === 2 && `Code sent to ${formData.email}`}
+            {step === 3 && 'Fill in your details'}
+          </p>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
-              placeholder="••••••••"
-            />
-          </div>
+          {step === 1 && (
+            <form className="space-y-5" onSubmit={handleSendOtp}>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                <input 
+                  type="email" 
+                  name="email" 
+                  placeholder="Enter your email" 
+                  required 
+                  value={formData.email} 
+                  onChange={handleChange} 
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                />
+              </div>
 
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100"
-            >
-              {error}
-            </motion.div>
+              {error && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100"
+                >
+                  {error}
+                </motion.div>
+              )}
+
+              <button 
+                type="submit" 
+                disabled={loading} 
+                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg relative overflow-hidden"
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                      className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
+                    />
+                    <span>Sending OTP...</span>
+                  </div>
+                ) : (
+                  'Send Verification Code'
+                )}
+              </button>
+            </form>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg relative overflow-hidden"
-          >
-            {loading ? (
-              <div className="flex items-center justify-center">
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                  className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
-                />
-                <span>Creating account...</span>
+          {step === 2 && (
+            <form className="space-y-5" onSubmit={handleVerifyOtp}>
+              <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg mb-4">
+                <p className="text-sm text-gray-700">{formData.email}</p>
+                <button 
+                  type="button" 
+                  onClick={() => setStep(1)}
+                  className="text-blue-600 text-sm font-medium hover:underline"
+                >
+                  Change
+                </button>
               </div>
-            ) : (
-              "Sign Up"
-            )}
-          </button>
-        </form>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Verification Code</label>
+                <input 
+                  type="text" 
+                  name="otp" 
+                  placeholder="6-digit code" 
+                  required 
+                  maxLength="6"
+                  value={formData.otp} 
+                  onChange={handleChange} 
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition text-center tracking-widest"
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  Didn't receive code?{' '}
+                  <button 
+                    type="button" 
+                    onClick={handleSendOtp}
+                    className="text-blue-600 font-medium hover:underline"
+                  >
+                    Resend
+                  </button>
+                </p>
+              </div>
 
-        <div className="mt-6 text-center text-sm text-gray-500">
-          <p>
-            Already have an account?{" "}
-            <a href="/login" className="text-blue-600 font-medium hover:underline">
-              Login
-            </a>
-          </p>
-        </div>
-      </motion.div>
+              {error && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100"
+                >
+                  {error}
+                </motion.div>
+              )}
 
-      {/* Progress Bar */}
-      <AnimatePresence>
-        {loading && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 4 }}
-            exit={{ opacity: 0, height: 0 }}
-            className="fixed bottom-0 left-0 right-0 bg-blue-100 overflow-hidden"
-          >
+              <button 
+                type="submit" 
+                disabled={loading} 
+                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg relative overflow-hidden"
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                      className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
+                    />
+                    <span>Verifying...</span>
+                  </div>
+                ) : (
+                  'Verify Code'
+                )}
+              </button>
+            </form>
+          )}
+
+          {step === 3 && (
+            <form className="space-y-5" onSubmit={handleSignup}>
+              <div className="flex items-center justify-between bg-blue-50 p-3 rounded-lg mb-4 border border-blue-100">
+                <p className="text-sm text-gray-700">{formData.email}</p>
+                <div className="flex items-center text-blue-600">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-xs font-medium">Verified</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                <input 
+                  type="text" 
+                  name="name" 
+                  placeholder="Your name" 
+                  required 
+                  value={formData.name} 
+                  onChange={handleChange} 
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <input 
+                  type="password" 
+                  name="password" 
+                  placeholder="Create a password" 
+                  required 
+                  minLength="8"
+                  value={formData.password} 
+                  onChange={handleChange} 
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  Must be at least 8 characters with a number and special character
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Confirm Password</label>
+                <input 
+                  type="password" 
+                  name="confirmPassword" 
+                  placeholder="Confirm your password" 
+                  required 
+                  value={formData.confirmPassword} 
+                  onChange={handleChange} 
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                />
+              </div>
+
+              {error && (
+                <motion.div 
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100"
+                >
+                  {error}
+                </motion.div>
+              )}
+
+              <button 
+                type="submit" 
+                disabled={loading} 
+                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg relative overflow-hidden"
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+                      className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
+                    />
+                    <span>Creating account...</span>
+                  </div>
+                ) : (
+                  'Complete Signup'
+                )}
+              </button>
+            </form>
+          )}
+
+          {loading && (
             <motion.div
-              initial={{ width: 0 }}
-              animate={{ width: `${progress}%` }}
-              transition={{ type: "spring", damping: 20 }}
-              className="h-full bg-gradient-to-r from-blue-500 to-blue-600"
-              style={{
-                boxShadow: "0 0 10px rgba(58, 123, 213, 0.5)",
-              }}
+              initial={{ x: '-100%' }}
+              animate={{ x: '100%' }}
+              transition={{ repeat: Infinity, duration: 1.5, ease: 'linear' }}
+              className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-300 via-blue-500 to-blue-300 opacity-70"
             />
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+        </motion.div>
+      </div>
     </div>
   );
 };
