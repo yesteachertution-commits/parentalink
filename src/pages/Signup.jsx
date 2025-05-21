@@ -35,7 +35,7 @@ const SignupPage = () => {
     setLoading(true);
 
     try {
-      await axios.post(`http://localhost:5001/api/email-otp/send-otp`, { email: formData.email });
+      await axios.post(`${backendUrl}/api/email-otp/send-otp`, { email: formData.email });
       setOtpSent(true);
       setStep(2);
     } catch (err) {
@@ -51,7 +51,7 @@ const SignupPage = () => {
     setLoading(true);
 
     try {
-      await axios.post(`http://localhost:5001/api/email-otp/verify-otp`, {
+      await axios.post(`${backendUrl}/api/email-otp/verify-otp`, {
         email: formData.email,
         otp: formData.otp
       });
