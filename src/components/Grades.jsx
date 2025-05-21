@@ -186,7 +186,7 @@ const Grades = () => {
     setStudents(updatedStudents);
 
     try {
-      await axios.delete(`http://localhost:5001/api/grades/delete`, {
+      await axios.delete(`${backendUrl}/api/grades/delete`, {
         data: { studentId, subject: selectedSubject }
       });
 
