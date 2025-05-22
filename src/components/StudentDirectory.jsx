@@ -207,15 +207,15 @@ const StudentDirectory = () => {
       <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-blue-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">Student Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">Father's Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">Mobile</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">Class</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">Actions</th>
-              </tr>
-            </thead>
+          <thead className="bg-blue-50">
+  <tr>
+    <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">Student Name</th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">Father's Name</th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase hidden md:table-cell">Mobile</th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">Class</th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase hidden md:table-cell">Actions</th>
+  </tr>
+</thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredStudents.length === 0 && (
                 <tr>
@@ -228,91 +228,81 @@ const StudentDirectory = () => {
                 <React.Fragment key={student._id}>
                   {editingStudent === student._id ? (
                     <tr className="bg-blue-50">
-                      <td className="px-6 py-4">
-                        <input
-                          name="name"
-                          value={editFormData.name}
-                          onChange={handleEditFormChange}
-                          onKeyDown={(e) => e.key === 'Enter' && handleEditSubmit(student._id)}
-                          className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      </td>
-                      <td className="px-6 py-4">
-                        <input
-                          name="fatherName"
-                          value={editFormData.fatherName}
-                          onChange={handleEditFormChange}
-                          onKeyDown={(e) => e.key === 'Enter' && handleEditSubmit(student._id)}
-                          className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      </td>
-                      <td className="px-6 py-4">
-                        <input
-                          name="mobile"
-                          value={editFormData.mobile}
-                          onChange={handleEditFormChange}
-                          onKeyDown={(e) => e.key === 'Enter' && handleEditSubmit(student._id)}
-                          className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                      </td>
-                      <td className="px-6 py-4">
-                        <select
-                          name="classes"
-                          value={editFormData.classes}
-                          onChange={handleEditFormChange}
-                          className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        >
-                          {classes.filter(c => c !== 'All Classes').map((cls, i) => (
-                            <option key={i} value={cls}>{cls}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="px-6 py-4">
-                        <button 
-                          onClick={() => handleEditSubmit(student._id)}
-                          className="text-green-600 mr-3 hover:text-green-800"
-                          disabled={loading}
-                        >
-                          {loading && editingStudent === student._id ? (
-                            <>
-                              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-green-600 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                              </svg>
-                              Saving...
-                            </>
-                          ) : 'Save'}
-                        </button>
-                        <button 
-                          onClick={() => setEditingStudent(null)}
-                          className="text-gray-600 hover:text-gray-800"
-                          disabled={loading}
-                        >
-                          Cancel
-                        </button>
-                      </td>
-                    </tr>
+                    <td className="px-6 py-4">
+                      <input
+                        name="name"
+                        value={editFormData.name}
+                        onChange={handleEditFormChange}
+                        onKeyDown={(e) => e.key === 'Enter' && handleEditSubmit(student._id)}
+                        className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </td>
+                    <td className="px-6 py-4">
+                      <input
+                        name="fatherName"
+                        value={editFormData.fatherName}
+                        onChange={handleEditFormChange}
+                        onKeyDown={(e) => e.key === 'Enter' && handleEditSubmit(student._id)}
+                        className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </td>
+                    <td className="px-6 py-4 hidden md:table-cell">
+                      <input
+                        name="mobile"
+                        value={editFormData.mobile}
+                        onChange={handleEditFormChange}
+                        onKeyDown={(e) => e.key === 'Enter' && handleEditSubmit(student._id)}
+                        className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </td>
+                    <td className="px-6 py-4">
+                      <select
+                        name="classes"
+                        value={editFormData.classes}
+                        onChange={handleEditFormChange}
+                        className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        {classes.filter(c => c !== 'All Classes').map((cls, i) => (
+                          <option key={i} value={cls}>{cls}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="px-6 py-4 hidden md:table-cell">
+                      <button 
+                        onClick={() => handleEditSubmit(student._id)}
+                        className="text-green-600 mr-3 hover:text-green-800"
+                        disabled={loading}
+                      >
+                        {loading && editingStudent === student._id ? (
+                          <>
+                            <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-green-600 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Saving...
+                          </>
+                        ) : 'Save'}
+                      </button>
+                      <button 
+                        onClick={() => setEditingStudent(null)}
+                        className="text-gray-600 hover:text-gray-800"
+                        disabled={loading}
+                      >
+                        Cancel
+                      </button>
+                    </td>
+                  </tr>
                   ) : (
                     <tr className="hover:bg-blue-50 transition">
-                      <td className="px-6 py-4">{student.name}</td>
-                      <td className="px-6 py-4">{student.fatherName}</td>
-                      <td className="px-6 py-4">{student.mobile}</td>
-                      <td className="px-6 py-4">{student.classes}</td>
-                      <td className="px-6 py-4">
-                        <button 
-                          onClick={() => handleEditClick(student)} 
-                          className="text-blue-600 mr-4 hover:text-blue-800"
-                        >
-                          Edit
-                        </button>
-                        <button 
-                          onClick={() => confirmDelete(student._id)} 
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          Delete
-                        </button>
-                      </td>
-                    </tr>
+  <td className="px-6 py-4">{student.name}</td>
+  <td className="px-6 py-4">{student.fatherName}</td>
+  <td className="px-6 py-4 hidden md:table-cell">{student.mobile}</td>
+  <td className="px-6 py-4">{student.classes}</td>
+  <td className="px-6 py-4 hidden md:table-cell">
+    <button onClick={() => handleEditClick(student)} className="text-blue-600 mr-4 hover:text-blue-800">Edit</button>
+    <button onClick={() => confirmDelete(student._id)} className="text-red-600 hover:text-red-800">Delete</button>
+  </td>
+</tr>
                   )}
                 </React.Fragment>
               ))}
