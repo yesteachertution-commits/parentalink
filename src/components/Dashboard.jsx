@@ -6,6 +6,7 @@ import AttendanceDirectory from './Attendance';
 import { useContext } from 'react';
 import { StudentContext } from '../context/StudentContext';
 import Grades from './Grades';
+import NotificationSystem from "./NotificationSystem"
 
 const Dashboard = () => {
 
@@ -96,58 +97,54 @@ const Dashboard = () => {
                 </div>
 
                 {/* Tabs */}
-                <div className="flex justify-center mb-8">
-                    <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.2, duration: 0.3 }}
-                        className="inline-flex rounded-lg bg-white p-1 shadow-md space-x-1 md:space-x-4"
-                    >
-                        {['students', 'attendance', 'grades'].map((tab) => (
-                            <motion.button
-                                key={tab}
-                                variants={tabButtonVariants}
-                                initial="rest"
-                                whileHover="hover"
-                                whileTap="tap"
-                                animate={activeTab === tab ? "active" : "rest"}
-                                className={`px-4 md:px-6 py-2 md:py-3 rounded-lg text-sm font-medium transition-all ${activeTab === tab
-                                        ? ''
-                                        : 'text-gray-600 hover:bg-blue-50'
-                                    }`}
-                                onClick={() => setActiveTab(tab)}
-                            >
-                                <span className="flex items-center justify-center gap-1 md:gap-2">
-                                    {tab === 'students' && (
-                                        <>
-                                            <svg className="w-4 md:w-5 h-4 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                                            </svg>
-                                            Students
-                                        </>
-                                    )}
-                                    {tab === 'attendance' && (
-                                        <>
-                                            <svg className="w-4 md:w-5 h-4 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                            Attendance
-                                        </>
-                                    )}
-                                    {tab === 'grades' && (
-                                        <>
-                                            <svg className="w-4 md:w-5 h-4 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                            Grades
-                                        </>
-                                    )}
-                                </span>
-                            </motion.button>
-                        ))}
-                    </motion.div>
-                </div>
-
+                <div className="mb-8 gap-2">
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ delay: 0.2, duration: 0.3 }}
+    className="flex bg-white p-1 rounded-lg shadow-md"
+  >
+    {['students', 'attendance', 'grades', 'notifications'].map((tab) => (
+      <motion.button
+        key={tab}
+        variants={tabButtonVariants}
+        initial="rest"
+        whileHover="hover"
+        whileTap="tap"
+        animate={activeTab === tab ? 'active' : 'rest'}
+        onClick={() => setActiveTab(tab)}
+        className={`flex-1 flex flex-col items-center justify-center px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+          activeTab === tab ? '' : 'text-gray-600 hover:bg-blue-50'
+        }`}
+      >
+        <div className="flex flex-col items-center space-y-1">
+          {/* Icons */}
+          {tab === 'students' && (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          )}
+          {tab === 'attendance' && (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )}
+          {tab === 'grades' && (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          )}
+          {tab === 'notifications' && (
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405M15 17V9a3 3 0 00-6 0v8m0 0H5l1.405-1.405" />
+            </svg>
+          )}
+          <span className="capitalize">{tab}</span>
+        </div>
+      </motion.button>
+    ))}
+  </motion.div>
+</div>
                 {/* Content with Animation */}
                 <div className="bg-[#eef6ff] rounded-xl shadow-xl overflow-hidden border border-gray-100">
                     <div className="p-4 md:p-8">
@@ -191,6 +188,19 @@ const Dashboard = () => {
                                     <Grades />
                                 </motion.div>
                             )}
+                            {/* {activeTab === 'notifications' && (
+                                <motion.div
+                                    key="notifications"
+                                    layout
+                                    className="p-8 text-center text-gray-500"
+                                    initial={{ opacity: 0, y: 30 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -20 }}
+                                    transition={{ duration: 0.5, ease: "easeInOut" }}
+                                >
+                                    <NotificationSystem />
+                                </motion.div>
+                            )} */}
                         </AnimatePresence>
                     </div>
                 </div>
