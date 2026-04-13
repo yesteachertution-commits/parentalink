@@ -28,7 +28,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: /^https:\/\/localhost:5001\/api\/.*/i,
+            urlPattern: /^https:\/\/parentalink-backend-fpqj\.vercel\.app\/api\/.*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
