@@ -5,7 +5,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FiCheckCircle, FiXCircle, FiSave, FiEdit2, FiTrash2, FiUsers, FiBook, FiSend } from 'react-icons/fi';
 
-const Grades = () => {
+const Grades = ({ readOnly = false }) => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   const { students, setStudents } = useContext(StudentContext);
@@ -43,6 +43,7 @@ const Grades = () => {
     }));
   };
   const handleMarkSender = async () => {
+    if (readOnly) return;
     try {
         const payload = {
             date: selectedDate, // ✅ New field added here
@@ -108,6 +109,7 @@ const Grades = () => {
   };
 
   const handleSaveGrade = async (studentId) => {
+    if (readOnly) return;
     const student = students.find(s => s.id === studentId);
     const marks = gradeForm[studentId]?.marks || '';
     const total = gradeForm[studentId]?.total || totalMarks;
@@ -171,6 +173,7 @@ const Grades = () => {
   };
 
   const handleDeleteGrade = async (studentId) => {
+    if (readOnly) return;
     const updatedStudents = students.map(student => {
       if (student.id === studentId) {
         const grades = { ...student.grades };
@@ -240,20 +243,22 @@ const Grades = () => {
       />
   
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h2 className="text-2xl font-semibold text-gray-800">Grades Directory</h2>
+        <h2 className="text-2xl font-semibold text-gray-800">{readOnly ? 'Marks' : 'Grades Directory'}</h2>
         <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-          <select
-            value={selectedClass}
-            onChange={(e) => setSelectedClass(e.target.value)}
-            className="px-4 py-2 border border-blue-200 rounded-lg shadow-sm bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-          >
-            {classes.map((cls, index) => (
-              <option key={index} value={cls}>
-                {cls}
-              </option>
-            ))}
-          </select>
-  
+          {!readOnly && (
+            <select
+              value={selectedClass}
+              onChange={(e) => setSelectedClass(e.target.value)}
+              className="px-4 py-2 border border-blue-200 rounded-lg shadow-sm bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+            >
+              {classes.map((cls, index) => (
+                <option key={index} value={cls}>
+                  {cls}
+                </option>
+              ))}
+            </select>
+          )}
+
           <select
             value={selectedSubject}
             onChange={(e) => setSelectedSubject(e.target.value)}
@@ -265,42 +270,53 @@ const Grades = () => {
               </option>
             ))}
           </select>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="px-4 py-2 border border-blue-200 rounded-lg shadow-sm bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
-          />
+          {!readOnly && (
+            <>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="px-4 py-2 border border-blue-200 rounded-lg shadow-sm bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+              />
 
-           <button
-                     onClick={handleMarkSender}
-                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md flex items-center space-x-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                   >
-                     <FiSend className="text-lg" />
-                     <span>Notify Marks</span>
-                   </button>
+              <button
+                type="button"
+                onClick={handleMarkSender}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md flex items-center space-x-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              >
+                <FiSend className="text-lg" />
+                <span>Notify Marks</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
   
-      <div className="bg-white p-4 rounded-xl flex justify-between items-center border border-blue-100 shadow-sm">
-        <div className="bg-[#daeaff] px-4 py-3 rounded-lg border border-blue-100 shadow-xs flex items-center space-x-3 flex-1 max-w-[30%]">
+      <div className={`bg-white p-4 rounded-xl flex justify-between items-center border border-blue-100 shadow-sm ${readOnly ? 'flex-wrap gap-4' : ''}`}>
+        <div className={`bg-[#daeaff] px-4 py-3 rounded-lg border border-blue-100 shadow-xs flex items-center space-x-3 flex-1 ${readOnly ? 'max-w-full sm:max-w-[48%]' : 'max-w-[30%]'}`}>
           <div className="bg-blue-100 p-2 rounded-full">
             <FiUsers className="text-blue-600 text-lg" />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-500">Showing Students</p>
+            <p className="text-sm font-medium text-gray-500">{readOnly ? 'Student' : 'Showing Students'}</p>
             <p className="text-xl font-bold text-blue-700">
-              {filteredStudents.length}
-              <span className="text-sm font-normal ml-1 text-gray-500">
-                {selectedClass === "All Classes"
-                  ? "from all classes"
-                  : `in ${selectedClass}`}
-              </span>
+              {readOnly && filteredStudents[0]?.name
+                ? filteredStudents[0].name
+                : (
+                  <>
+                    {filteredStudents.length}
+                    <span className="text-sm font-normal ml-1 text-gray-500">
+                      {selectedClass === 'All Classes'
+                        ? 'from all classes'
+                        : `in ${selectedClass}`}
+                    </span>
+                  </>
+                )}
             </p>
           </div>
         </div>
-  
-        <div className="bg-[#dee6ff] px-6 py-3 rounded-xl border border-blue-200 shadow-md flex items-center space-x-3 flex-1 max-w-[40%] mx-4">
+
+        <div className={`bg-[#dee6ff] px-6 py-3 rounded-xl border border-blue-200 shadow-md flex items-center space-x-3 flex-1 ${readOnly ? 'max-w-full sm:max-w-[48%]' : 'max-w-[40%] mx-4'}`}>
           <div className="bg-indigo-100 p-2 rounded-full">
             <FiBook className="text-indigo-600 text-lg" />
           </div>
@@ -309,16 +325,18 @@ const Grades = () => {
             <p className="text-xl font-bold text-indigo-700">{selectedSubject}</p>
           </div>
         </div>
-  
-        <div className="bg-[#ddfce7] px-4 py-3 rounded-lg border border-blue-100 shadow-xs flex items-center space-x-3 flex-1 max-w-[30%]">
-          <div className="bg-green-100 p-2 rounded-full">
-            <FiUsers className="text-green-600 text-lg" />
+
+        {!readOnly && (
+          <div className="bg-[#ddfce7] px-4 py-3 rounded-lg border border-blue-100 shadow-xs flex items-center space-x-3 flex-1 max-w-[30%]">
+            <div className="bg-green-100 p-2 rounded-full">
+              <FiUsers className="text-green-600 text-lg" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">Total Students</p>
+              <p className="text-xl font-bold text-green-700">{students.length}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-medium text-gray-500">Total Students</p>
-            <p className="text-xl font-bold text-green-700">{students.length}</p>
-          </div>
-        </div>
+        )}
       </div>
   
       <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto">
@@ -329,7 +347,7 @@ const Grades = () => {
               <th className="px-6 py-4">CLASS</th>
               <th className="px-6 py-4">MARKS</th>
               <th className="px-6 py-4">TOTAL</th>
-              <th className="px-6 py-4">ACTIONS</th>
+              {!readOnly && <th className="px-6 py-4">ACTIONS</th>}
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -346,41 +364,53 @@ const Grades = () => {
                     {student.classes}
                   </td>
                   <td className="px-6 py-4 align-middle">
-                    <input
-                      type="number"
-                      name="marks"
-                      value={currentGrade.marks}
-                      onChange={(e) => handleGradeChange(student.id, e)}
-                      className="w-24 h-10 px-2 py-1 border rounded text-center focus:ring focus:border-blue-400"
-                      placeholder="Marks"
-                    />
+                    {readOnly ? (
+                      <span className="text-gray-800 font-medium">{currentGrade.marks !== '' && currentGrade.marks != null ? currentGrade.marks : '—'}</span>
+                    ) : (
+                      <input
+                        type="number"
+                        name="marks"
+                        value={currentGrade.marks}
+                        onChange={(e) => handleGradeChange(student.id, e)}
+                        className="w-24 h-10 px-2 py-1 border rounded text-center focus:ring focus:border-blue-400"
+                        placeholder="Marks"
+                      />
+                    )}
                   </td>
                   <td className="px-6 py-4 align-middle">
-                    <input
-                      type="number"
-                      name="total"
-                      value={currentGrade.total || totalMarks}
-                      onChange={(e) => handleGradeChange(student.id, e)}
-                      className="w-24 h-10 px-2 py-1 border rounded text-center focus:ring focus:border-blue-400"
-                      placeholder="Total"
-                    />
+                    {readOnly ? (
+                      <span className="text-gray-800 font-medium">{currentGrade.total || totalMarks || '—'}</span>
+                    ) : (
+                      <input
+                        type="number"
+                        name="total"
+                        value={currentGrade.total || totalMarks}
+                        onChange={(e) => handleGradeChange(student.id, e)}
+                        className="w-24 h-10 px-2 py-1 border rounded text-center focus:ring focus:border-blue-400"
+                        placeholder="Total"
+                      />
+                    )}
                   </td>
-                  <td className="px-6 py-4 align-middle">
-                    <div className="flex space-x-2 items-center">
-                      <button
-                        onClick={() => handleSaveGrade(student.id)}
-                        className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 flex items-center"
-                      >
-                        <FiSave className="mr-1" /> Save
-                      </button>
-                      <button
-                        onClick={() => handleDeleteGrade(student.id)}
-                        className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 flex items-center"
-                      >
-                        <FiTrash2 className="mr-1" /> Delete
-                      </button>
-                    </div>
-                  </td>
+                  {!readOnly && (
+                    <td className="px-6 py-4 align-middle">
+                      <div className="flex space-x-2 items-center">
+                        <button
+                          type="button"
+                          onClick={() => handleSaveGrade(student.id)}
+                          className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 flex items-center"
+                        >
+                          <FiSave className="mr-1" /> Save
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteGrade(student.id)}
+                          className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 flex items-center"
+                        >
+                          <FiTrash2 className="mr-1" /> Delete
+                        </button>
+                      </div>
+                    </td>
+                  )}
                 </tr>
               );
             })}

@@ -18,11 +18,11 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<SignupPage/>} /> {/* Assuming you have a signup page */}
           <Route path="/dashboard" element={
-            <StudentProvider>
-              <ProtectedRoute>
+            <ProtectedRoute>
+              <StudentProvider>
                 <Dashboard />
-              </ProtectedRoute>
-            </StudentProvider>
+              </StudentProvider>
+            </ProtectedRoute>
           } />
         </Routes>
       </Router>

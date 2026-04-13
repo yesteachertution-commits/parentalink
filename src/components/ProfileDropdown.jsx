@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 const ProfileDropdown = () => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const { logout, user, setUser } = useAuth();
+  const { logout, user } = useAuth();
     const navigate = useNavigate();
 
   // Close dropdown when clicking outside

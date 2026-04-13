@@ -1,29 +1,38 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProfileDropdown from './ProfileDropdown';
 import StudentDirectory from './StudentDirectory';
 import AttendanceDirectory from './Attendance';
-import { useContext } from 'react';
 import { StudentContext } from '../context/StudentContext';
 import Grades from './Grades';
-import NotificationSystem from "./NotificationSystem"
+import { useAuth } from '../context/AuthContext';
 
 const Dashboard = () => {
+    const { user } = useAuth();
+    const isParent = user?.role === 'parent';
+    const tabs = useMemo(
+        () => (isParent ? ['attendance', 'grades'] : ['students', 'attendance', 'grades', 'notifications']),
+        [isParent]
+    );
 
-    const [activeTab, setActiveTab] = useState('students');
+    const [activeTab, setActiveTab] = useState(() => (isParent ? 'attendance' : 'students'));
     const { fetchStudents } = useContext(StudentContext);
 
     useEffect(() => {
-        if (activeTab === 'attendance' || activeTab === 'students') {
-            fetchStudents();
+        if (isParent) {
+            setActiveTab((t) => (t === 'students' || t === 'notifications' ? 'attendance' : t));
         }
-    }, [activeTab]);
+    }, [isParent]);
 
     useEffect(() => {
-        if (activeTab === 'students' || activeTab === 'attendance') {
+        if (activeTab === 'students' && !isParent) {
             fetchStudents();
         }
-    }, []); // this runs on mount
+    }, [activeTab, fetchStudents, isParent]);
+
+    useEffect(() => {
+        fetchStudents();
+    }, [fetchStudents]);
 
     // Animation variants
     const tabContentVariants = {
@@ -90,7 +99,9 @@ const Dashboard = () => {
                                 transition={{ delay: 0.1, duration: 0.4 }}
                                 className="text-base md:text-lg text-gray-600"
                             >
-                                Manage your educational data with elegance
+                                {isParent
+                                    ? 'View your child\'s attendance and marks'
+                                    : 'Manage your educational data with elegance'}
                             </motion.p>
                         </div>
                     </div>
@@ -104,7 +115,7 @@ const Dashboard = () => {
     transition={{ delay: 0.2, duration: 0.3 }}
     className="flex bg-white p-1 rounded-lg shadow-md"
   >
-    {['students', 'attendance', 'grades', 'notifications'].map((tab) => (
+    {tabs.map((tab) => (
       <motion.button
         key={tab}
         variants={tabButtonVariants}
@@ -149,7 +160,7 @@ const Dashboard = () => {
                 <div className="bg-[#eef6ff] rounded-xl shadow-xl overflow-hidden border border-gray-100">
                     <div className="p-4 md:p-8">
                         <AnimatePresence mode="wait">
-                            {activeTab === 'students' && (
+                            {activeTab === 'students' && !isParent && (
                                 <motion.div
                                     key="students"
                                     layout
@@ -171,7 +182,7 @@ const Dashboard = () => {
                                     exit={{ opacity: 0, y: -20 }}
                                     transition={{ duration: 0.5, ease: "easeInOut" }}
                                 >
-                                    <AttendanceDirectory />
+                                    <AttendanceDirectory isParentView={isParent} />
                                 </motion.div>
                             )}
 
@@ -185,7 +196,7 @@ const Dashboard = () => {
                                     exit={{ opacity: 0, y: -20 }}
                                     transition={{ duration: 0.5, ease: "easeInOut" }}
                                 >
-                                    <Grades />
+                                    <Grades readOnly={isParent} />
                                 </motion.div>
                             )}
                             {/* {activeTab === 'notifications' && (

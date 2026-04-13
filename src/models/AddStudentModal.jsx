@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 
-const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) => {
+const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [], existingStudents = [] }) => {
   // Luxurious theme colors
   const theme = {
     primary: '#3a7bd5',
@@ -22,6 +22,7 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
     name: '',
     fatherName: '',
     mobile: '',
+    rollNo: '',
     classes: ''
   });
   const [loading, setLoading] = useState(false);
@@ -37,6 +38,9 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
         ...prev,
         [name]: numericValue
       }));
+    } else if (name === "rollNo") {
+      const trimmed = value.trim().slice(0, 64);
+      setFormData(prev => ({ ...prev, rollNo: trimmed }));
     } else {
       setFormData(prev => ({
         ...prev,
@@ -58,14 +62,29 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
         await login(token);
       }
 
+      const mobileWithCode = `+91${formData.mobile.trim()}`;
+      const duplicate = existingStudents.some(s => s.mobile === mobileWithCode);
+      if (duplicate) {
+        setError('A student with this mobile number already exists.');
+        setLoading(false);
+        return;
+      }
+
+      if (!formData.rollNo.trim()) {
+        setError('Roll number is required (parents use it as their login password).');
+        setLoading(false);
+        return;
+      }
+
       const payload = {
         ...formData,
-        mobile: `+91${formData.mobile.trim()}`
+        mobile: mobileWithCode,
+        rollNo: formData.rollNo.trim(),
       };
 
       const response = await axios.post(
         `${backendUrl}/api/create/students`,
-        payload,
+        { students: [payload] },
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -74,7 +93,8 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
         }
       );
     
-      onAddStudent(response.data);
+      const newStudent = response.data.students?.[0] || response.data.student || response.data;
+      onAddStudent(newStudent);
       onClose();
     } catch (err) {
       console.error("Error adding student:", err);
@@ -234,6 +254,31 @@ const AddStudentModal = ({ isOpen, onClose, onAddStudent, classOptions = [] }) =
                     </div>
                     <p className="text-xs mt-2 pl-1" style={{ color: theme.textLight }}>
                       We'll send important updates to this number
+                    </p>
+                  </div>
+
+                  {/* Roll number (parent login password) */}
+                  <div>
+                    <label className="block text-sm font-medium mb-2" style={{ color: theme.text }}>
+                      Roll number
+                    </label>
+                    <input
+                      type="text"
+                      name="rollNo"
+                      value={formData.rollNo}
+                      onChange={handleChange}
+                      className="w-full px-4 py-3 rounded-xl border transition-all"
+                      style={{
+                        borderColor: theme.border,
+                        backgroundColor: theme.light,
+                        color: theme.text,
+                        boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)'
+                      }}
+                      required
+                      placeholder="e.g. 1024"
+                    />
+                    <p className="text-xs mt-2 pl-1" style={{ color: theme.textLight }}>
+                      Parents sign in with this student&apos;s mobile (+91) as user ID and this roll number as password.
                     </p>
                   </div>
 

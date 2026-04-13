@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useContext } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AddStudentModal from '../models/AddStudentModal';
 import axios from 'axios';
+import { StudentContext } from '../context/StudentContext';
 
 const StudentDirectory = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const { students, setStudents, fetchStudents } = useContext(StudentContext);
 
   const [selectedClass, setSelectedClass] = useState('All Classes');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
@@ -14,47 +16,25 @@ const StudentDirectory = () => {
     name: '',
     fatherName: '',
     mobile: '',
+    rollNo: '',
     classes: ''
   });
-  const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({
     show: false,
     message: '',
-    type: 'success' // 'success' or 'error'
+    type: 'success'
   });
-
-  useEffect(() => {
-    const fetchStudents = async () => {
-      try {
-        setLoading(true);
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${backendUrl}/api/create/students`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-        setStudents(response.data);
-      } catch (err) {
-        console.error("Failed to fetch students:", err);
-        showToast('Failed to fetch students', 'error');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStudents();
-  }, [backendUrl]);
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
     setTimeout(() => {
-      setToast({ ...toast, show: false });
+      setToast(prev => ({ ...prev, show: false }));
     }, 3000);
   };
 
-  const handleAddStudent = (newStudent) => {
-    setStudents([...students, newStudent]);
+  const handleAddStudent = async () => {
+    await fetchStudents();
     setShowAddModal(false);
     showToast('Student added successfully!');
   };
@@ -68,11 +48,13 @@ const StudentDirectory = () => {
     : students.filter(student => student.classes === selectedClass);
 
   const handleEditClick = (student) => {
-    setEditingStudent(student._id);
+    const sid = student._id || student.id;
+    setEditingStudent(sid);
     setEditFormData({
       name: student.name,
       fatherName: student.fatherName,
       mobile: student.mobile,
+      rollNo: student.rollNo || '',
       classes: student.classes
     });
   };
@@ -87,16 +69,12 @@ const StudentDirectory = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       await axios.put(`${backendUrl}/api/create/students/${id}`, editFormData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
       });
-
-      const updatedStudents = students.map(student =>
-        student._id === id ? { ...student, ...editFormData } : student
-      );
-      setStudents(updatedStudents);
+      // Directly update local state so rollNo shows immediately
+      setStudents(prev => prev.map(s =>
+        (s._id === id || s.id === id) ? { ...s, ...editFormData } : s
+      ));
       setEditingStudent(null);
       showToast('Student updated successfully!');
     } catch (err) {
@@ -120,7 +98,7 @@ const StudentDirectory = () => {
           'Content-Type': 'application/json'
         }
       });
-      setStudents(students.filter(student => student._id !== id));
+      setStudents(students.filter(student => student._id !== id && student.id !== id));
       setShowDeleteConfirm(null);
       showToast('Student deleted successfully!');
     } catch (err) {
@@ -211,6 +189,7 @@ const StudentDirectory = () => {
   <tr>
     <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">Student Name</th>
     <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">Father's Name</th>
+    <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">Roll No.</th>
     <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase hidden md:table-cell">Mobile</th>
     <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">Class</th>
     <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase hidden md:table-cell">Actions</th>
@@ -219,21 +198,23 @@ const StudentDirectory = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredStudents.length === 0 && (
                 <tr>
-                  <td colSpan="5" className="text-center text-gray-500 py-6">
+                  <td colSpan="6" className="text-center text-gray-500 py-6">
                     No students found for {selectedClass}.
                   </td>
                 </tr>
               )}
-              {filteredStudents.map((student) => (
-                <React.Fragment key={student._id}>
-                  {editingStudent === student._id ? (
+              {filteredStudents.map((student) => {
+                const rowId = student._id || student.id;
+                return (
+                <React.Fragment key={rowId}>
+                  {editingStudent === rowId ? (
                     <tr className="bg-blue-50">
                     <td className="px-6 py-4">
                       <input
                         name="name"
                         value={editFormData.name}
                         onChange={handleEditFormChange}
-                        onKeyDown={(e) => e.key === 'Enter' && handleEditSubmit(student._id)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleEditSubmit(rowId)}
                         className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </td>
@@ -242,7 +223,16 @@ const StudentDirectory = () => {
                         name="fatherName"
                         value={editFormData.fatherName}
                         onChange={handleEditFormChange}
-                        onKeyDown={(e) => e.key === 'Enter' && handleEditSubmit(student._id)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleEditSubmit(rowId)}
+                        className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      />
+                    </td>
+                    <td className="px-6 py-4">
+                      <input
+                        name="rollNo"
+                        value={editFormData.rollNo}
+                        onChange={handleEditFormChange}
+                        onKeyDown={(e) => e.key === 'Enter' && handleEditSubmit(rowId)}
                         className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </td>
@@ -251,7 +241,7 @@ const StudentDirectory = () => {
                         name="mobile"
                         value={editFormData.mobile}
                         onChange={handleEditFormChange}
-                        onKeyDown={(e) => e.key === 'Enter' && handleEditSubmit(student._id)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleEditSubmit(rowId)}
                         className="w-full px-3 py-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </td>
@@ -269,11 +259,11 @@ const StudentDirectory = () => {
                     </td>
                     <td className="px-6 py-4 hidden md:table-cell">
                       <button 
-                        onClick={() => handleEditSubmit(student._id)}
+                        onClick={() => handleEditSubmit(rowId)}
                         className="text-green-600 mr-3 hover:text-green-800"
                         disabled={loading}
                       >
-                        {loading && editingStudent === student._id ? (
+                        {loading && editingStudent === rowId ? (
                           <>
                             <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-green-600 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -296,16 +286,18 @@ const StudentDirectory = () => {
                     <tr className="hover:bg-blue-50 transition">
   <td className="px-6 py-4">{student.name}</td>
   <td className="px-6 py-4">{student.fatherName}</td>
+  <td className="px-6 py-4">{student.rollNo || '—'}</td>
   <td className="px-6 py-4 hidden md:table-cell">{student.mobile}</td>
   <td className="px-6 py-4">{student.classes}</td>
   <td className="px-6 py-4 hidden md:table-cell">
     <button onClick={() => handleEditClick(student)} className="text-blue-600 mr-4 hover:text-blue-800">Edit</button>
-    <button onClick={() => confirmDelete(student._id)} className="text-red-600 hover:text-red-800">Delete</button>
+    <button onClick={() => confirmDelete(rowId)} className="text-red-600 hover:text-red-800">Delete</button>
   </td>
 </tr>
                   )}
                 </React.Fragment>
-              ))}
+              );
+              })}
             </tbody>
           </table>
         </div>
@@ -318,6 +310,7 @@ const StudentDirectory = () => {
             onClose={() => setShowAddModal(false)}
             onAddStudent={handleAddStudent}
             classOptions={gradeClasses}
+            existingStudents={students}
           />
         )}
       </AnimatePresence>

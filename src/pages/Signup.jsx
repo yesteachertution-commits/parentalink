@@ -112,16 +112,39 @@ const SignupPage = () => {
               {step === 3 && 'Just a few more details to get started.'}
             </p>
           </div>
-          <div className="w-full max-w-md">
-            <img 
-              src={
-                step === 1 ? "public/email-verification.svg" :
-                step === 2 ? "public/otp-verification.svg" :
-                "public/signup-complete.svg"
-              } 
-              alt="Signup illustration" 
-              className="w-full h-auto object-contain"
-            />
+          <div className="w-full max-w-md flex items-center justify-center">
+            {step === 1 && (
+              <svg viewBox="0 0 200 200" className="w-48 h-48 opacity-80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="100" cy="100" r="90" fill="#EFF6FF"/>
+                <rect x="40" y="60" width="120" height="80" rx="10" fill="#BFDBFE"/>
+                <rect x="40" y="60" width="120" height="25" rx="10" fill="#3B82F6"/>
+                <path d="M40 75 L100 105 L160 75" stroke="white" strokeWidth="3" fill="none"/>
+                <circle cx="100" cy="155" r="18" fill="#3B82F6"/>
+                <path d="M92 155 L98 161 L110 149" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+            {step === 2 && (
+              <svg viewBox="0 0 200 200" className="w-48 h-48 opacity-80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="100" cy="100" r="90" fill="#EFF6FF"/>
+                <rect x="55" y="65" width="90" height="70" rx="8" fill="#BFDBFE"/>
+                <rect x="65" y="80" width="15" height="20" rx="3" fill="#3B82F6"/>
+                <rect x="85" y="80" width="15" height="20" rx="3" fill="#3B82F6"/>
+                <rect x="105" y="80" width="15" height="20" rx="3" fill="#3B82F6"/>
+                <rect x="65" y="108" width="55" height="4" rx="2" fill="#93C5FD"/>
+                <circle cx="100" cy="155" r="18" fill="#3B82F6"/>
+                <path d="M92 155 L98 161 L110 149" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
+            {step === 3 && (
+              <svg viewBox="0 0 200 200" className="w-48 h-48 opacity-80" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="100" cy="100" r="90" fill="#EFF6FF"/>
+                <circle cx="100" cy="80" r="28" fill="#BFDBFE"/>
+                <circle cx="100" cy="80" r="18" fill="#3B82F6"/>
+                <path d="M55 150 C55 125 145 125 145 150" fill="#BFDBFE"/>
+                <circle cx="100" cy="155" r="18" fill="#3B82F6"/>
+                <path d="M92 155 L98 161 L110 149" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            )}
           </div>
         </motion.div>
       </div>

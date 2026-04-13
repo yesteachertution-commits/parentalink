@@ -49,10 +49,13 @@ export const AuthProvider = ({ children }) => {
     setToken(tokenValue);
     try {
       const decoded = decodeToken(tokenValue);
+      const role = decoded.role === "parent" ? "parent" : "school";
       setUser({
-        id: decoded.id,
-        name: decoded.name,
-        email: decoded.email
+        id: decoded.id ?? decoded.sub ?? decoded.userId,
+        name: decoded.name || decoded.studentName || "User",
+        email: decoded.email ?? null,
+        role,
+        studentId: decoded.studentId ?? null,
       });
     } catch {
       logout();
@@ -82,10 +85,13 @@ export const AuthProvider = ({ children }) => {
           setToken(null);
         } else {
           setToken(storedToken);
+          const role = decoded.role === "parent" ? "parent" : "school";
           setUser({
-            id: decoded.id,
-            name: decoded.name,
-            email: decoded.email
+            id: decoded.id ?? decoded.sub ?? decoded.userId,
+            name: decoded.name || decoded.studentName || "User",
+            email: decoded.email ?? null,
+            role,
+            studentId: decoded.studentId ?? null,
           });
         }
       } catch {
