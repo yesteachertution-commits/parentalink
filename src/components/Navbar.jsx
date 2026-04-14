@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { FiHome, FiInfo, FiMail, FiLogIn, FiUserPlus, FiStar } from 'react-icons/fi';
+import { useState, useEffect } from 'react';
+import { FiHome, FiInfo, FiMail, FiLogIn, FiUserPlus, FiStar, FiDownload } from 'react-icons/fi';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 const Navbar = () => {
@@ -7,6 +7,31 @@ const Navbar = () => {
   const [hoveredItem, setHoveredItem] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+  useEffect(() => {
+    const handler = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    window.addEventListener('appinstalled', () => {
+      setDeferredPrompt(null);
+    });
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    setDeferredPrompt(null);
+  };
 
   const navItems = [
     { id: '/', label: 'Home', icon: <FiHome className="mr-1" /> },
@@ -25,7 +50,7 @@ const Navbar = () => {
           {/* Logo */}
           <Link to="/" className="flex-shrink-0 flex items-center">
             <span className="text-2xl font-extrabold bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">
-              YourBrand
+              Parentalink
             </span>
           </Link>
 
@@ -59,6 +84,15 @@ const Navbar = () => {
           {/* Desktop Auth Buttons */}
           <div className="hidden md:block">
             <div className="ml-4 flex items-center md:ml-6 space-x-3">
+              {deferredPrompt && (
+                <button
+                  onClick={handleInstallClick}
+                  className="flex items-center px-4 py-2 text-sm font-medium text-emerald-600 border border-emerald-200 bg-emerald-50 rounded-md hover:bg-emerald-100 transition-all hover:-translate-y-0.5"
+                >
+                  <FiDownload className="mr-1.5" />
+                  Install App
+                </button>
+              )}
               <button
                 onClick={() => navigate('/login')}
                 className="flex items-center px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-all hover:-translate-y-0.5"
@@ -111,6 +145,15 @@ const Navbar = () => {
           ))}
         </div>
         <div className="pt-2 pb-4 border-t border-blue-100 px-3">
+          {deferredPrompt && (
+            <button
+              onClick={() => { handleInstallClick(); setIsOpen(false); }}
+              className="w-full flex items-center justify-center mb-3 px-4 py-2 bg-emerald-600 text-white rounded-md shadow hover:bg-emerald-700 transition-all"
+            >
+              <FiDownload className="mr-2" />
+              Install Parentalink App
+            </button>
+          )}
           <button
             onClick={() => { navigate('/login'); setIsOpen(false); }}
             className="w-full flex items-center justify-center mb-3 px-4 py-2 border border-blue-500 text-blue-600 rounded-md hover:bg-blue-50 transition-colors"
