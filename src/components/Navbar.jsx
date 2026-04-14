@@ -48,7 +48,14 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex-shrink-0 flex items-center">
+          <Link to="/" className="flex-shrink-0 flex items-center space-x-2 group">
+            <motion.div 
+              whileHover={{ rotate: 5, scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center p-1.5 shadow-md group-hover:shadow-lg transition-all"
+            >
+              <img src="/icons/icon-192.svg" alt="Logo" className="w-full h-full object-contain brightness-0 invert" />
+            </motion.div>
             <span className="text-2xl font-extrabold bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">
               Parentalink
             </span>
