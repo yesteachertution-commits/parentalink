@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { motion } from 'framer-motion';
 import muskan from '../../public/muskan.jpeg';
 import hemlo from '../../public/hemlo.jpeg'; 
 import sourav from '../../public/sourav.jpeg';
@@ -60,6 +61,57 @@ function About() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
               </svg>
             </button>
+          </div>
+        </div>
+      </div>
+      
+      {/* Core Values Section added for extra content */}
+      <div className="max-w-6xl mx-auto px-6 mb-16 scroll-mt-20 w-full">
+        <motion.h2 
+          initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
+          className="text-3xl font-bold text-gray-800 mb-12 text-center"
+        >
+          Our Core Values
+        </motion.h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }} className="bg-white p-8 rounded-xl shadow-sm text-center border-t-4 border-blue-500 hover:shadow-md transition">
+            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 text-blue-600 text-2xl font-bold">1</div>
+            <h3 className="text-xl font-semibold mb-3">Innovation First</h3>
+            <p className="text-gray-600">We constantly push the boundaries of educational technology to deliver unparalleled communication tools.</p>
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2 }} className="bg-white p-8 rounded-xl shadow-sm text-center border-t-4 border-purple-500 hover:shadow-md transition">
+            <div className="w-16 h-16 bg-purple-50 rounded-full flex items-center justify-center mx-auto mb-4 text-purple-600 text-2xl font-bold">2</div>
+            <h3 className="text-xl font-semibold mb-3">Radical Transparency</h3>
+            <p className="text-gray-600">Open communication is at the heart of our platform, and we practice what we preach.</p>
+          </motion.div>
+          <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.3 }} className="bg-white p-8 rounded-xl shadow-sm text-center border-t-4 border-emerald-500 hover:shadow-md transition">
+            <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-600 text-2xl font-bold">3</div>
+            <h3 className="text-xl font-semibold mb-3">Student Success</h3>
+            <p className="text-gray-600">Every feature we build is designed to ultimately improve student engagement and academic outcomes.</p>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* Impact Metrics Section */}
+      <div className="w-full bg-blue-600 py-16 mb-16">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center text-white">
+            <div>
+              <div className="text-4xl font-extrabold mb-2">500+</div>
+              <div className="text-blue-200 font-medium tracking-wide uppercase text-sm">Schools Active</div>
+            </div>
+            <div>
+              <div className="text-4xl font-extrabold mb-2">2M+</div>
+              <div className="text-blue-200 font-medium tracking-wide uppercase text-sm">Messages Sent</div>
+            </div>
+            <div>
+              <div className="text-4xl font-extrabold mb-2">99.9%</div>
+              <div className="text-blue-200 font-medium tracking-wide uppercase text-sm">Uptime</div>
+            </div>
+            <div>
+              <div className="text-4xl font-extrabold mb-2">24/7</div>
+              <div className="text-blue-200 font-medium tracking-wide uppercase text-sm">Support</div>
+            </div>
           </div>
         </div>
       </div>

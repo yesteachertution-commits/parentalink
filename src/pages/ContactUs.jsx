@@ -60,7 +60,7 @@ const ContactUs = () => {
       >
         <div className="text-center mb-8">
           <motion.h1 
-            className="text-3xl font-bold mb-2 bg-gradient-to-r from-indigo-500 to-purple-600 bg-clip-text text-transparent"
+            className="text-3xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-blue-400 bg-clip-text text-transparent"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
@@ -75,7 +75,7 @@ const ContactUs = () => {
           whileHover={{ y: -5 }}
           transition={{ type: 'spring', stiffness: 300 }}
         >
-          <div className="h-1 bg-gradient-to-r from-indigo-500 to-purple-600"></div>
+          <div className="h-1 bg-gradient-to-r from-blue-500 to-blue-600"></div>
 
           <div className="p-6 md:p-8">
             <AnimatePresence>
@@ -236,7 +236,7 @@ const ContactUs = () => {
                   type="submit"
                   disabled={isSubmitting}
                   className={`w-full py-3 px-6 rounded-lg flex items-center justify-center space-x-2 ${
-                    isSubmitting ? 'bg-indigo-400' : 'bg-indigo-600 hover:bg-indigo-700'
+                    isSubmitting ? 'bg-blue-400' : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-md hover:shadow-lg'
                   } text-white transition-all`}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -254,6 +254,34 @@ const ContactUs = () => {
                 </motion.button>
               </div>
             </form>
+          </div>
+        </motion.div>
+
+        {/* Added FAQ Section */}
+        <motion.div 
+          className="mt-16 text-center"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+        >
+          <h2 className="text-2xl font-bold text-gray-800 mb-6">Frequently Asked Questions</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <h3 className="font-semibold text-gray-900 mb-2">How fast do you respond?</h3>
+              <p className="text-gray-600 text-sm">We typically respond to all inquiries within 24 business hours. For urgent support, please call our toll-free number.</p>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <h3 className="font-semibold text-gray-900 mb-2">Can I request a custom feature?</h3>
+              <p className="text-gray-600 text-sm">Yes, our Enterprise tier includes custom integrations. Fill out the form above with your specific requirements.</p>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <h3 className="font-semibold text-gray-900 mb-2">Do you offer onboarding support?</h3>
+              <p className="text-gray-600 text-sm">Absolutely! Every new school receives dedicated onboarding sessions for staff and administrators.</p>
+            </div>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+              <h3 className="font-semibold text-gray-900 mb-2">Where are your offices located?</h3>
+              <p className="text-gray-600 text-sm">We are a fully remote team operating globally, but our headquarters is based entirely in the cloud!</p>
+            </div>
           </div>
         </motion.div>
       </motion.div>

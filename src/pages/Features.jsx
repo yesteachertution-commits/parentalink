@@ -107,6 +107,39 @@ const Features = () => {
           ))}
         </div>
 
+        {/* How It Works Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          viewport={{ once: true }}
+          className="mt-24 mb-10 text-center"
+        >
+          <h2 className="text-3xl font-extrabold text-gray-900 mb-12">How It Works in 3 Simple Steps</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto relative">
+            {/* Desktop connecting line */}
+            <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-0.5 bg-blue-200 z-0"></div>
+            
+            <div className="relative z-10 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
+              <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto text-2xl font-bold shadow-lg mb-6 ring-4 ring-white">1</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Upload Data</h3>
+              <p className="text-gray-600">Quickly sync or upload your student directory and parent contact numbers securely into our cloud database.</p>
+            </div>
+            
+            <div className="relative z-10 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
+              <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto text-2xl font-bold shadow-lg mb-6 ring-4 ring-white">2</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Set Triggers</h3>
+              <p className="text-gray-600">Configure automated alerts for daily attendance, term test results, or broadcast emergency announcements.</p>
+            </div>
+            
+            <div className="relative z-10 bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition">
+              <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto text-2xl font-bold shadow-lg mb-6 ring-4 ring-white">3</div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">Parents Notified</h3>
+              <p className="text-gray-600">Parents instantly receive personalized updates directly on WhatsApp or Email without needing to log in.</p>
+            </div>
+          </div>
+        </motion.div>
+
         {/* Animated CTA Section */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
