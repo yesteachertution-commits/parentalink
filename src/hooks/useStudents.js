@@ -36,6 +36,13 @@ export const useStudentMutations = () => {
     },
   });
 
+  const bulkDeleteMutation = useMutation({
+    mutationFn: studentApi.bulkDeleteStudents,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['students'] });
+    },
+  });
+
   const attendanceMutation = useMutation({
     mutationFn: studentApi.saveAttendance,
     onSuccess: () => {
@@ -61,6 +68,7 @@ export const useStudentMutations = () => {
     createMutation,
     updateMutation,
     deleteMutation,
+    bulkDeleteMutation,
     attendanceMutation,
     gradeMutation,
     deleteGradeMutation

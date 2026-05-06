@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AddStudentModal from '../models/AddStudentModal';
+import BulkImportModal from '../models/BulkImportModal';
 import { useStudents, useStudentMutations } from '../hooks/useStudents';
 import { FiChevronLeft, FiChevronRight, FiEdit2, FiTrash2, FiPlus, FiUsers } from 'react-icons/fi';
 
@@ -15,7 +16,8 @@ const StudentDirectory = () => {
     classes: selectedClass 
   });
 
-  const { updateMutation, deleteMutation } = useStudentMutations();
+  const { updateMutation, deleteMutation, bulkDeleteMutation } = useStudentMutations();
+  const [selectedStudents, setSelectedStudents] = useState([]);
 
   const students = data?.students || [];
   const totalPages = data?.totalPages || 1;
@@ -24,6 +26,7 @@ const StudentDirectory = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [editingStudent, setEditingStudent] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [editFormData, setEditFormData] = useState({
     name: '',
     fatherName: '',
@@ -49,6 +52,11 @@ const StudentDirectory = () => {
     refetch();
     setShowAddModal(false);
     showToast('Student added successfully!');
+  };
+
+  const handleImportSuccess = () => {
+    refetch();
+    showToast('Students imported successfully!');
   };
 
   const handleClassChange = (newClass) => {
@@ -100,10 +108,40 @@ const StudentDirectory = () => {
     try {
       await deleteMutation.mutateAsync(id);
       setShowDeleteConfirm(null);
+      setSelectedStudents(selectedStudents.filter(sid => sid !== id));
       showToast('Student deleted successfully!');
     } catch (err) {
       console.error("Error deleting student:", err);
       showToast('Failed to delete student', 'error');
+    }
+  };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedStudents(filteredStudents.map(s => s._id || s.id));
+    } else {
+      setSelectedStudents([]);
+    }
+  };
+
+  const handleSelectStudent = (id) => {
+    if (selectedStudents.includes(id)) {
+      setSelectedStudents(selectedStudents.filter(sid => sid !== id));
+    } else {
+      setSelectedStudents([...selectedStudents, id]);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedStudents.length === 0) return;
+    if (window.confirm(`Are you sure you want to delete ${selectedStudents.length} students?`)) {
+      try {
+        await bulkDeleteMutation.mutateAsync(selectedStudents);
+        setSelectedStudents([]);
+        showToast('Students deleted successfully!');
+      } catch (err) {
+        showToast('Failed to delete students', 'error');
+      }
     }
   };
 
@@ -162,11 +200,27 @@ const StudentDirectory = () => {
             ))}
           </select>
           <button
+            onClick={() => setShowImportModal(true)}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition whitespace-nowrap shadow-md hover:shadow-lg flex items-center"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+            Bulk Import
+          </button>
+          <button
             onClick={() => setShowAddModal(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition whitespace-nowrap shadow-md hover:shadow-lg"
           >
             Add New Student
           </button>
+          {selectedStudents.length > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              disabled={bulkDeleteMutation?.isPending}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition whitespace-nowrap shadow-md hover:shadow-lg disabled:opacity-50"
+            >
+              Delete Selected ({selectedStudents.length})
+            </button>
+          )}
         </div>
       </div>
 
@@ -188,6 +242,14 @@ const StudentDirectory = () => {
           <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-blue-50">
   <tr>
+    <th className="px-6 py-3 text-left">
+      <input 
+        type="checkbox" 
+        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        onChange={handleSelectAll}
+        checked={selectedStudents.length === filteredStudents.length && filteredStudents.length > 0}
+      />
+    </th>
     <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">Student Name</th>
     <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">Father's Name</th>
     <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">Roll No.</th>
@@ -214,6 +276,7 @@ const StudentDirectory = () => {
                 <React.Fragment key={rowId}>
                   {editingStudent === rowId ? (
                     <tr className="bg-blue-50">
+                    <td className="px-6 py-4"></td>
                     <td className="px-6 py-4">
                       <input
                         name="name"
@@ -289,6 +352,14 @@ const StudentDirectory = () => {
                   </tr>
                   ) : (
                     <tr className="hover:bg-blue-50 transition">
+  <td className="px-6 py-4">
+    <input 
+      type="checkbox" 
+      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+      checked={selectedStudents.includes(rowId)}
+      onChange={() => handleSelectStudent(rowId)}
+    />
+  </td>
   <td className="px-6 py-4">{student.name}</td>
   <td className="px-6 py-4">{student.fatherName}</td>
   <td className="px-6 py-4">{student.rollNo || '—'}</td>
@@ -379,6 +450,16 @@ const StudentDirectory = () => {
             onAddStudent={handleAddStudent}
             classOptions={gradeClasses}
             existingStudents={students}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showImportModal && (
+          <BulkImportModal 
+            isOpen={showImportModal}
+            onClose={() => setShowImportModal(false)}
+            onImportSuccess={handleImportSuccess}
           />
         )}
       </AnimatePresence>

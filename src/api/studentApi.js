@@ -40,6 +40,13 @@ export const studentApi = {
     return response.data;
   },
 
+  bulkDeleteStudents: async (studentIds) => {
+    const response = await axios.post(`${backendUrl}/api/create/students/bulk-delete`, { studentIds }, {
+      headers: getAuthHeader()
+    });
+    return response.data;
+  },
+
   saveAttendance: async (attendanceData) => {
     const response = await axios.post(`${backendUrl}/api/save/attendance`, attendanceData, {
       headers: getAuthHeader()
