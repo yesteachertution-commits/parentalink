@@ -1,36 +1,47 @@
-import React, { useState, useContext } from 'react';
-import { StudentContext } from '../context/StudentContext';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
+import { useStudents, useStudentMutations, useNotifications } from '../hooks/useStudents';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FiCheckCircle, FiXCircle, FiSave, FiEdit2, FiTrash2, FiUsers, FiBook, FiSend } from 'react-icons/fi';
 
-const Grades = ({ readOnly = false }) => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
-  const { students, setStudents } = useContext(StudentContext);
+const Grades = ({ readOnly = false }) => {
+  const { data, isLoading } = useStudents({ limit: 1000 });
+  const { gradeMutation, deleteGradeMutation } = useStudentMutations();
+  const { marksNotify } = useNotifications();
+
+  const [localStudents, setLocalStudents] = useState([]);
   const [selectedClass, setSelectedClass] = useState('All Classes');
   const [selectedSubject, setSelectedSubject] = useState('Math');
   const [gradeForm, setGradeForm] = useState({});
   const [totalMarks, setTotalMarks] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+
+  useEffect(() => {
+    if (data?.students) {
+      setLocalStudents(data.students);
+    }
+  }, [data]);
+
   
 
   const subjects = ['Math', 'Science', 'English', 'History', 'Geography'];
   const gradeClasses = Array.from({ length: 12 }, (_, i) => `Grade ${i + 1}`);
-  const classes = ['All Classes', ...gradeClasses, ...new Set(students.map(student => student.classes).filter(Boolean))];
+  const classes = ['All Classes', ...gradeClasses, ...new Set(localStudents.map(student => student.classes).filter(Boolean))];
 
   const filteredStudents = selectedClass === 'All Classes'
-    ? students
-    : students.filter(student => student.classes === selectedClass);
+    ? localStudents
+    : localStudents.filter(student => student.classes === selectedClass);
+
 
   const getStudentGrade = (studentId) => {
-    const student = students.find(student => student.id === studentId);
+    const student = localStudents.find(student => student.id === studentId);
     if (student && student.grades && student.grades[selectedSubject]) {
       return student.grades[selectedSubject];
     }
     return { marks: '', total: totalMarks };
   };
+
 
   const handleGradeChange = (studentId, e) => {
     const { name, value } = e.target;
@@ -45,185 +56,65 @@ const Grades = ({ readOnly = false }) => {
   const handleMarkSender = async () => {
     if (readOnly) return;
     try {
-        const payload = {
-            date: selectedDate, // ✅ New field added here
-            students: filteredStudents.map(student => ({
-              name: student.name,
-              mobile: student.mobile,
-              classes: student.classes,
-              subject: selectedSubject,
-              marks: gradeForm[student.id]?.marks || '',
-              total: gradeForm[student.id]?.total || totalMarks,
-            }))
+      const payload = {
+        date: selectedDate,
+        students: filteredStudents.map(student => {
+          const grade = getStudentGrade(student.id);
+          const currentGrade = gradeForm[student.id] || grade;
+          return {
+            name: student.name,
+            mobile: student.mobile,
+            classes: student.classes,
+            subject: selectedSubject,
+            marks: currentGrade.marks !== undefined ? currentGrade.marks : '',
+            total: currentGrade.total || totalMarks,
+          };
+        })
       };
 
-      await axios.post(`${backendUrl}/api/notification/notify-parents-mark`, payload);
-      toast.success(
-        <div className="flex items-center space-x-2">
-          <FiCheckCircle className="text-green-500 text-xl flex-shrink-0" />
-          <div>
-            <p className="font-medium">Marks sended Successfully!</p>
-            <p className="text-sm text-gray-600">Parents have been notified</p>
-          </div>
-        </div>,
-        {
-          position: "top-center",
-          autoClose: 3000,
-          hideProgressBar: true,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          className: "border border-green-200 bg-white shadow-lg rounded-lg",
-          bodyClassName: "p-4",
-        }
-      );
+      await marksNotify.mutateAsync(payload);
+      toast.success('Marks sent Successfully!');
     } catch (error) {
-      console.error(error);
-      toast.error(
-        <div className="flex items-center space-x-2">
-          <FiXCircle className="text-red-500 text-xl flex-shrink-0" />
-          <div>
-            <p className="font-medium">Failed to Send Marks</p>
-            <p className="text-sm text-gray-600">Please try again later</p>
-          </div>
-        </div>,
-        {
-          position: "top-center",
-          autoClose: 3000,
-          hideProgressBar: true,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          className: "border border-red-200 bg-white shadow-lg rounded-lg",
-          bodyClassName: "p-4",
-        }
-      );
+      toast.error('Failed to Send Marks');
     }
   };
 
+
   const handleTotalMarksChange = (e) => {
-    const value = parseFloat(e.target.value) || 100;
-    setTotalMarks(value);
+    setTotalMarks(e.target.value);
   };
 
   const handleSaveGrade = async (studentId) => {
     if (readOnly) return;
-    const student = students.find(s => s.id === studentId);
-    const marks = gradeForm[studentId]?.marks || '';
-    const total = gradeForm[studentId]?.total || totalMarks;
-
-    const updatedStudents = students.map(student => {
-      if (student.id === studentId) {
-        return {
-          ...student,
-          grades: {
-            ...student.grades,
-            [selectedSubject]: {
-              marks,
-              total
-            }
-          }
-        };
-      }
-      return student;
-    });
-
-    setStudents(updatedStudents);
+    const grade = getStudentGrade(studentId);
+    const currentGrade = gradeForm[studentId] || grade;
+    const marks = currentGrade.marks !== undefined ? currentGrade.marks : '';
+    const total = currentGrade.total || totalMarks;
 
     try {
-      await axios.post(`${backendUrl}/api/grades/update`, {
+      await gradeMutation.mutateAsync({
         studentId,
         subject: selectedSubject,
         marks,
         total
       });
-
-      toast.success(
-        <div className="flex items-center space-x-2">
-          <FiCheckCircle className="text-green-500 text-xl flex-shrink-0" />
-          <div>
-            <p className="font-medium">Grade Saved Successfully!</p>
-            <p className="text-sm text-gray-600">{student.name}'s {selectedSubject} grade saved</p>
-          </div>
-        </div>,
-        {
-          position: "top-center",
-          autoClose: 3000,
-          className: "border border-green-200 bg-white shadow-lg rounded-lg",
-        }
-      );
+      toast.success('Grade Saved Successfully!');
     } catch (error) {
-      toast.error(
-        <div className="flex items-center space-x-2">
-          <FiXCircle className="text-red-500 text-xl flex-shrink-0" />
-          <div>
-            <p className="font-medium">Failed to Save Grade</p>
-            <p className="text-sm text-gray-600">Please try again later</p>
-          </div>
-        </div>,
-        {
-          position: "top-center",
-          autoClose: 3000,
-          className: "border border-red-200 bg-white shadow-lg rounded-lg",
-        }
-      );
+      toast.error('Failed to Save Grade');
     }
   };
+
 
   const handleDeleteGrade = async (studentId) => {
     if (readOnly) return;
-    const updatedStudents = students.map(student => {
-      if (student.id === studentId) {
-        const grades = { ...student.grades };
-        delete grades[selectedSubject];
-        return {
-          ...student,
-          grades
-        };
-      }
-      return student;
-    });
-
-    setStudents(updatedStudents);
-
     try {
-      await axios.delete(`${backendUrl}/api/grades/delete`, {
-        data: { studentId, subject: selectedSubject }
-      });
-
-      toast.success(
-        <div className="flex items-center space-x-2">
-          <FiCheckCircle className="text-green-500 text-xl flex-shrink-0" />
-          <div>
-            <p className="font-medium">Grade Deleted Successfully!</p>
-            <p className="text-sm text-gray-600">{selectedSubject} grade removed</p>
-          </div>
-        </div>,
-        {
-          position: "top-center",
-          autoClose: 3000,
-          className: "border border-green-200 bg-white shadow-lg rounded-lg",
-        }
-      );
+      await deleteGradeMutation.mutateAsync({ studentId, subject: selectedSubject });
+      toast.success('Grade Deleted Successfully!');
     } catch (error) {
-      toast.error(
-        <div className="flex items-center space-x-2">
-          <FiXCircle className="text-red-500 text-xl flex-shrink-0" />
-          <div>
-            <p className="font-medium">Failed to Delete Grade</p>
-            <p className="text-sm text-gray-600">Please try again later</p>
-          </div>
-        </div>,
-        {
-          position: "top-center",
-          autoClose: 3000,
-          className: "border border-red-200 bg-white shadow-lg rounded-lg",
-        }
-      );
+      toast.error('Failed to Delete Grade');
     }
   };
+
   return (
     <div className="space-y-6">
       <ToastContainer
@@ -278,14 +169,22 @@ const Grades = ({ readOnly = false }) => {
                 onChange={(e) => setSelectedDate(e.target.value)}
                 className="px-4 py-2 border border-blue-200 rounded-lg shadow-sm bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
               />
+              <input
+                type="number"
+                placeholder="Total Marks"
+                value={totalMarks}
+                onChange={handleTotalMarksChange}
+                className="px-4 py-2 border border-blue-200 rounded-lg shadow-sm bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition w-32"
+              />
 
               <button
                 type="button"
                 onClick={handleMarkSender}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md flex items-center space-x-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                disabled={marksNotify.isPending}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md flex items-center space-x-2 focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:opacity-50"
               >
                 <FiSend className="text-lg" />
-                <span>Notify Marks</span>
+                <span>{marksNotify.isPending ? 'Sending...' : 'Notify Marks'}</span>
               </button>
             </>
           )}
@@ -333,7 +232,7 @@ const Grades = ({ readOnly = false }) => {
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500">Total Students</p>
-              <p className="text-xl font-bold text-green-700">{students.length}</p>
+              <p className="text-xl font-bold text-green-700">{localStudents.length}</p>
             </div>
           </div>
         )}
@@ -397,16 +296,18 @@ const Grades = ({ readOnly = false }) => {
                         <button
                           type="button"
                           onClick={() => handleSaveGrade(student.id)}
-                          className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 flex items-center"
+                          disabled={gradeMutation.isPending}
+                          className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 flex items-center disabled:opacity-50"
                         >
-                          <FiSave className="mr-1" /> Save
+                          <FiSave className="mr-1" /> {gradeMutation.isPending ? 'Saving...' : 'Save'}
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDeleteGrade(student.id)}
-                          className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 flex items-center"
+                          disabled={deleteGradeMutation.isPending}
+                          className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 flex items-center disabled:opacity-50"
                         >
-                          <FiTrash2 className="mr-1" /> Delete
+                          <FiTrash2 className="mr-1" /> {deleteGradeMutation.isPending ? 'Deleting...' : 'Delete'}
                         </button>
                       </div>
                     </td>

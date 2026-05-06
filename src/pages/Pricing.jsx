@@ -6,20 +6,19 @@ const Pricing = () => {
   const tiers = [
     {
       name: 'Basic',
-      price: 'Free',
+      price: 'Custom',
       description: 'Perfect for small schools getting started.',
       features: ['Up to 100 students', 'Basic real-time attendance alerts', 'Email support', 'Standard parent portal'],
-      buttonText: 'Get Started',
+      buttonText: 'Get Quote',
       buttonVariant: 'outline',
       gradient: 'from-gray-500 to-gray-600'
     },
     {
       name: 'Pro',
-      price: '$49',
-      interval: '/month',
+      price: 'Custom',
       description: 'Ideal for growing institutions needing more power.',
       features: ['Up to 1000 students', 'Automated test results', 'Priority SMS & Email', 'Performance analytics dashboard'],
-      buttonText: 'Start Free Trial',
+      buttonText: 'Get Quote',
       buttonVariant: 'solid',
       popular: true,
       gradient: 'from-blue-500 to-blue-600'
@@ -29,7 +28,7 @@ const Pricing = () => {
       price: 'Custom',
       description: 'Dedicated support and infrastructure for large networks.',
       features: ['Unlimited students', 'Custom integrations', '24/7 Phone Support', 'Dedicated account manager'],
-      buttonText: 'Contact Sales',
+      buttonText: 'Get Quote',
       buttonVariant: 'outline',
       gradient: 'from-purple-500 to-purple-600'
     }
