@@ -4,11 +4,13 @@ import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FiCheckCircle, FiXCircle, FiSave, FiEdit2, FiTrash2, FiUsers, FiBook, FiSend } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
 
 const Grades = ({ readOnly = false }) => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   const { students, setStudents } = useContext(StudentContext);
+  const { token } = useAuth();
   const [selectedClass, setSelectedClass] = useState('All Classes');
   const [selectedSubject, setSelectedSubject] = useState('Math');
   const [gradeForm, setGradeForm] = useState({});
@@ -57,7 +59,9 @@ const Grades = ({ readOnly = false }) => {
             }))
       };
 
-      await axios.post(`${backendUrl}/api/notification/notify-parents-mark`, payload);
+      await axios.post(`${backendUrl}/api/notification/notify-parents-mark`, payload, {
+        headers: { Authorization: `Bearer ${token || localStorage.getItem('token')}` }
+      });
       toast.success(
         <div className="flex items-center space-x-2">
           <FiCheckCircle className="text-green-500 text-xl flex-shrink-0" />
@@ -138,6 +142,8 @@ const Grades = ({ readOnly = false }) => {
         subject: selectedSubject,
         marks,
         total
+      }, {
+        headers: { Authorization: `Bearer ${token || localStorage.getItem('token')}` }
       });
 
       toast.success(
@@ -190,7 +196,8 @@ const Grades = ({ readOnly = false }) => {
 
     try {
       await axios.delete(`${backendUrl}/api/grades/delete`, {
-        data: { studentId, subject: selectedSubject }
+        data: { studentId, subject: selectedSubject },
+        headers: { Authorization: `Bearer ${token || localStorage.getItem('token')}` }
       });
 
       toast.success(
