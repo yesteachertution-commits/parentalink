@@ -1,17 +1,32 @@
-import React, { useState, useContext } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import AddStudentModal from '../models/AddStudentModal';
-import axios from 'axios';
-import { StudentContext } from '../context/StudentContext';
+import BulkImportModal from '../models/BulkImportModal';
+import { useStudents, useStudentMutations } from '../hooks/useStudents';
+import { FiChevronLeft, FiChevronRight, FiEdit2, FiTrash2, FiPlus, FiUsers } from 'react-icons/fi';
+
 
 const StudentDirectory = () => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const { students, setStudents, fetchStudents } = useContext(StudentContext);
-
+  const [page, setPage] = useState(1);
   const [selectedClass, setSelectedClass] = useState('All Classes');
+  
+  const { data, isLoading, isError, refetch } = useStudents({ 
+    page, 
+    limit: 10, 
+    classes: selectedClass 
+  });
+
+  const { updateMutation, deleteMutation, bulkDeleteMutation } = useStudentMutations();
+  const [selectedStudents, setSelectedStudents] = useState([]);
+
+  const students = data?.students || [];
+  const totalPages = data?.totalPages || 1;
+  const totalStudents = data?.totalStudents || 0;
+
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null);
   const [editingStudent, setEditingStudent] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
   const [editFormData, setEditFormData] = useState({
     name: '',
     fatherName: '',
@@ -19,12 +34,12 @@ const StudentDirectory = () => {
     rollNo: '',
     classes: ''
   });
-  const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({
     show: false,
     message: '',
     type: 'success'
   });
+
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -34,18 +49,28 @@ const StudentDirectory = () => {
   };
 
   const handleAddStudent = async () => {
-    await fetchStudents();
+    refetch();
     setShowAddModal(false);
     showToast('Student added successfully!');
   };
+
+  const handleImportSuccess = () => {
+    refetch();
+    showToast('Students imported successfully!');
+  };
+
+  const handleClassChange = (newClass) => {
+    setSelectedClass(newClass);
+    setPage(1); // Reset to first page when filtering
+  };
+
 
   const gradeClasses = Array.from({ length: 12 }, (_, i) => `Grade ${i + 1}`);
   const studentClasses = Array.from(new Set(students.map(s => s.classes)));
   const classes = ['All Classes', ...Array.from(new Set([...gradeClasses, ...studentClasses]))];
 
-  const filteredStudents = selectedClass === 'All Classes'
-    ? students
-    : students.filter(student => student.classes === selectedClass);
+  const filteredStudents = students; // Filtering is now handled by the API query
+
 
   const handleEditClick = (student) => {
     const sid = student._id || student.id;
@@ -66,48 +91,60 @@ const StudentDirectory = () => {
 
   const handleEditSubmit = async (id) => {
     try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      await axios.put(`${backendUrl}/api/create/students/${id}`, editFormData, {
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
-      });
-      // Directly update local state so rollNo shows immediately
-      setStudents(prev => prev.map(s =>
-        (s._id === id || s.id === id) ? { ...s, ...editFormData } : s
-      ));
+      await updateMutation.mutateAsync({ id, data: editFormData });
       setEditingStudent(null);
       showToast('Student updated successfully!');
     } catch (err) {
       console.error(err);
       showToast('Failed to update student', 'error');
-    } finally {
-      setLoading(false);
     }
   };
+
 
   const confirmDelete = (id) => setShowDeleteConfirm(id);
   const cancelDelete = () => setShowDeleteConfirm(null);
 
   const deleteStudent = async (id) => {
     try {
-      setLoading(true);
-      const token = localStorage.getItem('token');
-      await axios.delete(`${backendUrl}/api/create/students/${id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      setStudents(students.filter(student => student._id !== id && student.id !== id));
+      await deleteMutation.mutateAsync(id);
       setShowDeleteConfirm(null);
+      setSelectedStudents(selectedStudents.filter(sid => sid !== id));
       showToast('Student deleted successfully!');
     } catch (err) {
       console.error("Error deleting student:", err);
       showToast('Failed to delete student', 'error');
-    } finally {
-      setLoading(false);
     }
   };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedStudents(filteredStudents.map(s => s._id || s.id));
+    } else {
+      setSelectedStudents([]);
+    }
+  };
+
+  const handleSelectStudent = (id) => {
+    if (selectedStudents.includes(id)) {
+      setSelectedStudents(selectedStudents.filter(sid => sid !== id));
+    } else {
+      setSelectedStudents([...selectedStudents, id]);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedStudents.length === 0) return;
+    if (window.confirm(`Are you sure you want to delete ${selectedStudents.length} students?`)) {
+      try {
+        await bulkDeleteMutation.mutateAsync(selectedStudents);
+        setSelectedStudents([]);
+        showToast('Students deleted successfully!');
+      } catch (err) {
+        showToast('Failed to delete students', 'error');
+      }
+    }
+  };
+
 
   return (
     <motion.div
@@ -139,22 +176,23 @@ const StudentDirectory = () => {
         )}
       </AnimatePresence>
 
-      {/* Loading Overlay - Only shown for delete operations */}
-      {loading && showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="flex flex-col items-center">
-            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-2"></div>
-            <p className="text-white font-medium">Processing...</p>
+      {/* Loading Overlay */}
+      {(isLoading || deleteMutation.isPending || updateMutation.isPending) && (
+        <div className="fixed inset-0 bg-black/10 backdrop-blur-[2px] flex items-center justify-center z-50">
+          <div className="bg-white p-4 rounded-xl shadow-2xl flex flex-col items-center">
+            <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+            <p className="text-gray-700 font-medium">Updating Records...</p>
           </div>
         </div>
       )}
+
 
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h2 className="text-2xl font-semibold text-gray-800">Student Directory</h2>
         <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
           <select
             value={selectedClass}
-            onChange={(e) => setSelectedClass(e.target.value)}
+            onChange={(e) => handleClassChange(e.target.value)}
             className="block w-full px-4 py-2 border border-blue-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-700"
           >
             {classes.map((cls, index) => (
@@ -162,11 +200,27 @@ const StudentDirectory = () => {
             ))}
           </select>
           <button
+            onClick={() => setShowImportModal(true)}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition whitespace-nowrap shadow-md hover:shadow-lg flex items-center"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+            Bulk Import
+          </button>
+          <button
             onClick={() => setShowAddModal(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition whitespace-nowrap shadow-md hover:shadow-lg"
           >
             Add New Student
           </button>
+          {selectedStudents.length > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              disabled={bulkDeleteMutation?.isPending}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition whitespace-nowrap shadow-md hover:shadow-lg disabled:opacity-50"
+            >
+              Delete Selected ({selectedStudents.length})
+            </button>
+          )}
         </div>
       </div>
 
@@ -178,15 +232,24 @@ const StudentDirectory = () => {
           </p>
         </div>
         <span className="px-3 py-1 bg-white rounded-full text-sm font-medium shadow-sm border border-blue-100">
-          Total: {students.length} students
+          Total: {totalStudents} students
         </span>
       </div>
+
 
       <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-blue-50">
   <tr>
+    <th className="px-6 py-3 text-left">
+      <input 
+        type="checkbox" 
+        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        onChange={handleSelectAll}
+        checked={selectedStudents.length === filteredStudents.length && filteredStudents.length > 0}
+      />
+    </th>
     <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">Student Name</th>
     <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">Father's Name</th>
     <th className="px-6 py-3 text-left text-xs font-medium text-blue-700 uppercase">Roll No.</th>
@@ -196,19 +259,24 @@ const StudentDirectory = () => {
   </tr>
 </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredStudents.length === 0 && (
+               {filteredStudents.length === 0 && !isLoading && (
                 <tr>
-                  <td colSpan="6" className="text-center text-gray-500 py-6">
-                    No students found for {selectedClass}.
+                  <td colSpan="6" className="text-center text-gray-500 py-12">
+                    <div className="flex flex-col items-center text-gray-400">
+                      <FiUsers size={40} className="mb-2 opacity-20" />
+                      <p>No students found for {selectedClass}.</p>
+                    </div>
                   </td>
                 </tr>
               )}
+
               {filteredStudents.map((student) => {
                 const rowId = student._id || student.id;
                 return (
                 <React.Fragment key={rowId}>
                   {editingStudent === rowId ? (
                     <tr className="bg-blue-50">
+                    <td className="px-6 py-4"></td>
                     <td className="px-6 py-4">
                       <input
                         name="name"
@@ -261,9 +329,9 @@ const StudentDirectory = () => {
                       <button 
                         onClick={() => handleEditSubmit(rowId)}
                         className="text-green-600 mr-3 hover:text-green-800"
-                        disabled={loading}
+                        disabled={updateMutation.isPending}
                       >
-                        {loading && editingStudent === rowId ? (
+                        {updateMutation.isPending && editingStudent === rowId ? (
                           <>
                             <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-green-600 inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -276,7 +344,7 @@ const StudentDirectory = () => {
                       <button 
                         onClick={() => setEditingStudent(null)}
                         className="text-gray-600 hover:text-gray-800"
-                        disabled={loading}
+                        disabled={updateMutation.isPending}
                       >
                         Cancel
                       </button>
@@ -284,6 +352,14 @@ const StudentDirectory = () => {
                   </tr>
                   ) : (
                     <tr className="hover:bg-blue-50 transition">
+  <td className="px-6 py-4">
+    <input 
+      type="checkbox" 
+      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+      checked={selectedStudents.includes(rowId)}
+      onChange={() => handleSelectStudent(rowId)}
+    />
+  </td>
   <td className="px-6 py-4">{student.name}</td>
   <td className="px-6 py-4">{student.fatherName}</td>
   <td className="px-6 py-4">{student.rollNo || '—'}</td>
@@ -301,7 +377,70 @@ const StudentDirectory = () => {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="bg-white px-6 py-4 border-t border-gray-100 flex items-center justify-between">
+            <div className="flex-1 flex justify-between sm:hidden">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+            <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm text-gray-700">
+                  Showing <span className="font-medium">{(page - 1) * 10 + 1}</span> to <span className="font-medium">{Math.min(page * 10, totalStudents)}</span> of <span className="font-medium">{totalStudents}</span> students
+                </p>
+              </div>
+              <div>
+                <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <span className="sr-only">Previous</span>
+                    <FiChevronLeft className="h-5 w-5" />
+                  </button>
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                        page === p
+                          ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                          : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    <span className="sr-only">Next</span>
+                    <FiChevronRight className="h-5 w-5" />
+                  </button>
+                </nav>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
+
 
       <AnimatePresence>
         {showAddModal && (
@@ -311,6 +450,16 @@ const StudentDirectory = () => {
             onAddStudent={handleAddStudent}
             classOptions={gradeClasses}
             existingStudents={students}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showImportModal && (
+          <BulkImportModal 
+            isOpen={showImportModal}
+            onClose={() => setShowImportModal(false)}
+            onImportSuccess={handleImportSuccess}
           />
         )}
       </AnimatePresence>
@@ -339,16 +488,16 @@ const StudentDirectory = () => {
                 <button 
                   onClick={cancelDelete} 
                   className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                  disabled={loading}
+                  disabled={deleteMutation.isPending}
                 >
                   Cancel
                 </button>
                 <button 
                   onClick={() => deleteStudent(showDeleteConfirm)} 
                   className="px-4 py-2 text-white bg-red-500 rounded-lg hover:bg-red-600 flex items-center justify-center min-w-20"
-                  disabled={loading}
+                  disabled={deleteMutation.isPending}
                 >
-                  {loading ? (
+                  {deleteMutation.isPending ? (
                     <>
                       <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

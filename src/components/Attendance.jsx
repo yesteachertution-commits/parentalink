@@ -1,19 +1,27 @@
-import React, { useState, useContext, useEffect } from 'react';
-import { StudentContext } from '../context/StudentContext';
-import axios from 'axios';
+import React, { useState, useEffect } from 'react';
+import { useStudents, useStudentMutations, useNotifications } from '../hooks/useStudents';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FiCheckCircle, FiXCircle, FiSend, FiSave, FiClock, FiList, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 
+
 const AttendanceDirectory = ({ isParentView = false }) => {
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const { students, setStudents } = useContext(StudentContext);
+  const { data, isLoading } = useStudents({ limit: 1000 }); // Fetch all for marking
+  const { attendanceMutation } = useStudentMutations();
+  const { attendanceNotify } = useNotifications();
+
+  const [localStudents, setLocalStudents] = useState([]);
   const [selectedClass, setSelectedClass] = useState('All Classes');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isNotifying, setIsNotifying] = useState(false);
   const [view, setView] = useState(() => (isParentView ? 'history' : 'mark'));
+
+  useEffect(() => {
+    if (data?.students) {
+      setLocalStudents(data.students);
+    }
+  }, [data]);
+
 
   // History drill-down: null = grade list, string = grade selected, object = student selected
   const [selectedGrade, setSelectedGrade] = useState(null);
@@ -25,76 +33,88 @@ const AttendanceDirectory = ({ isParentView = false }) => {
   const [historyYear, setHistoryYear] = useState(now.getFullYear());
 
   useEffect(() => {
-    if (!isParentView || students.length !== 1) return;
-    const s = students[0];
+    if (!isParentView || localStudents.length !== 1) return;
+    const s = localStudents[0];
     setView('history');
     setSelectedGrade(s.classes || 'Student');
     setSelectedStudent(s);
-  }, [isParentView, students]);
+  }, [isParentView, localStudents]);
+
 
   const gradeClasses = Array.from({ length: 12 }, (_, i) => `Grade ${i + 1}`);
-  const classes = ['All Classes', ...gradeClasses, ...new Set(students.map(s => s.classes).filter(Boolean))];
-  const filteredStudents = selectedClass === 'All Classes' ? students : students.filter(s => s.classes === selectedClass);
+  const classes = ['All Classes', ...gradeClasses, ...new Set(localStudents.map(s => s.classes).filter(Boolean))];
+  const filteredStudents = selectedClass === 'All Classes' ? localStudents : localStudents.filter(s => s.classes === selectedClass);
 
   const getAttendanceStatus = (studentId) => {
-    const student = students.find(s => s.id === studentId);
+    const student = localStudents.find(s => s.id === studentId);
     return student?.attendance?.[selectedDate] || 'Not Marked';
   };
 
   const handleToggleAttendance = (studentId) => {
     const current = getAttendanceStatus(studentId);
     const next = current === 'Present' ? 'Absent' : 'Present';
-    setStudents(students.map(s =>
+    setLocalStudents(localStudents.map(s =>
       s.id === studentId ? { ...s, attendance: { ...s.attendance, [selectedDate]: next } } : s
     ));
   };
 
   const handleSaveAttendance = async () => {
-    const token = localStorage.getItem('token');
     const unmarked = filteredStudents.filter(s => !s.attendance?.[selectedDate]);
-    if (unmarked.length > 0) { alert('Please mark attendance for all students before saving.'); return; }
-    setIsSaving(true);
+    if (unmarked.length > 0) { 
+      toast.warning('Please mark attendance for all students before saving.'); 
+      return; 
+    }
+    
     try {
-      await axios.post(`${backendUrl}/api/save/attendance`, {
+      await attendanceMutation.mutateAsync({
         date: selectedDate,
         students: filteredStudents.map(s => ({
-          id: s.id, name: s.name, fatherName: s.fatherName,
-          mobile: s.mobile, classes: s.classes, attendance: s.attendance?.[selectedDate],
+          id: s.id, 
+          name: s.name, 
+          fatherName: s.fatherName,
+          mobile: s.mobile, 
+          classes: s.classes, 
+          attendance: s.attendance?.[selectedDate],
         }))
-      }, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
-      toast.success('Attendance Saved!', { position: 'top-center', autoClose: 3000 });
+      });
+      toast.success('Attendance Saved!');
     } catch (e) {
-      console.error(e);
-      toast.error('Failed to Save Attendance', { position: 'top-center', autoClose: 3000 });
-    } finally { setIsSaving(false); }
+      toast.error('Failed to Save Attendance');
+    }
   };
 
   const handleNotify = async () => {
-    const token = localStorage.getItem('token');
     const unmarked = filteredStudents.filter(s => !s.attendance?.[selectedDate]);
-    if (unmarked.length > 0) { alert('Please mark attendance for all students before notifying.'); return; }
-    setIsNotifying(true);
+    if (unmarked.length > 0) { 
+      toast.warning('Please mark attendance for all students before notifying.'); 
+      return; 
+    }
+    
     try {
-      await axios.post(`${backendUrl}/api/notification/notify-parents`, {
+      await attendanceNotify.mutateAsync({
         date: selectedDate,
         students: filteredStudents.map(s => ({
-          name: s.name, mobile: s.mobile, classes: s.classes, attendance: s.attendance?.[selectedDate],
+          name: s.name, 
+          mobile: s.mobile, 
+          classes: s.classes, 
+          attendance: s.attendance?.[selectedDate],
         }))
       });
-      toast.success('Parents notified!', { position: 'top-center', autoClose: 3000 });
+      toast.success('Parents notified!');
     } catch (e) {
-      console.error(e);
-      toast.error('Failed to Send Attendance', { position: 'top-center', autoClose: 3000 });
-    } finally { setIsNotifying(false); }
+      toast.error('Failed to Send Notifications');
+    }
   };
 
+
   // Group students by class
-  const groupedByClass = students.reduce((acc, s) => {
+  const groupedByClass = localStudents.reduce((acc, s) => {
     const cls = s.classes || 'Unassigned';
     if (!acc[cls]) acc[cls] = [];
     acc[cls].push(s);
     return acc;
   }, {});
+
 
   // Calendar helpers
   const monthName = new Date(historyYear, historyMonth).toLocaleString('default', { month: 'long' });
@@ -146,13 +166,13 @@ const AttendanceDirectory = ({ isParentView = false }) => {
             </select>
             <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
               className="px-4 py-2 border border-blue-200 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-blue-500" />
-            <button onClick={handleSaveAttendance} disabled={isSaving}
+            <button onClick={handleSaveAttendance} disabled={attendanceMutation.isPending}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">
-              {isSaving ? 'Saving...' : <><FiSave /><span>Save Attendance</span></>}
+              {attendanceMutation.isPending ? 'Saving...' : <><FiSave /><span>Save Attendance</span></>}
             </button>
-            <button onClick={handleNotify} disabled={isNotifying}
+            <button onClick={handleNotify} disabled={attendanceNotify.isPending}
               className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">
-              {isNotifying ? 'Notifying...' : <><FiSend /><span>Notify Attendance</span></>}
+              {attendanceNotify.isPending ? 'Notifying...' : <><FiSend /><span>Notify Attendance</span></>}
             </button>
           </div>
 
@@ -161,7 +181,8 @@ const AttendanceDirectory = ({ isParentView = false }) => {
               <h3 className="font-medium text-blue-800">Showing {filteredStudents.length} students</h3>
               <p className="text-sm text-blue-600">{selectedClass === 'All Classes' ? 'Across all classes' : `In ${selectedClass}`} for {selectedDate}</p>
             </div>
-            <span className="px-3 py-1 bg-white rounded-full text-sm font-medium shadow-sm border border-blue-100">Total: {students.length}</span>
+            <span className="px-3 py-1 bg-white rounded-full text-sm font-medium shadow-sm border border-blue-100">Total: {localStudents.length}</span>
+
           </div>
 
           <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto">

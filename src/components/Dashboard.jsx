@@ -1,11 +1,12 @@
-import React, { useEffect, useState, useContext, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProfileDropdown from './ProfileDropdown';
 import StudentDirectory from './StudentDirectory';
 import AttendanceDirectory from './Attendance';
-import { StudentContext } from '../context/StudentContext';
 import Grades from './Grades';
 import { useAuth } from '../context/AuthContext';
+
+
 
 const Dashboard = () => {
     const { user } = useAuth();
@@ -16,7 +17,7 @@ const Dashboard = () => {
     );
 
     const [activeTab, setActiveTab] = useState(() => (isParent ? 'attendance' : 'students'));
-    const { fetchStudents } = useContext(StudentContext);
+
 
     useEffect(() => {
         if (isParent) {
@@ -24,15 +25,6 @@ const Dashboard = () => {
         }
     }, [isParent]);
 
-    useEffect(() => {
-        if (activeTab === 'students' && !isParent) {
-            fetchStudents();
-        }
-    }, [activeTab, fetchStudents, isParent]);
-
-    useEffect(() => {
-        fetchStudents();
-    }, [fetchStudents]);
 
     // Animation variants
     const tabContentVariants = {

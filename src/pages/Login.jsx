@@ -18,6 +18,7 @@ const Login = () => {
     password: '',
     mobile: '',
     rollNo: '',
+    schoolCode: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -67,6 +68,7 @@ const Login = () => {
       const res = await axios.post(`${backendUrl}/api/parent/login`, {
         mobile: mobileWithCode,
         password: formData.rollNo.trim(),
+        schoolCode: formData.schoolCode.trim(),
       });
       login(res.data.token);
       navigate('/dashboard');
@@ -223,6 +225,21 @@ const Login = () => {
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
                   />
                   <p className="text-xs text-gray-500 mt-1">Use the roll number assigned when the student was added.</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">School Code</label>
+                  <input
+                    type="text"
+                    name="schoolCode"
+                    placeholder="Enter school code"
+                    required
+                    value={formData.schoolCode}
+                    onChange={handleChange}
+                    autoComplete="off"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Provided by your school.</p>
                 </div>
               </>
             )}
