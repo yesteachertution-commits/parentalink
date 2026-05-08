@@ -277,15 +277,9 @@ const Login = () => {
           <div className="mt-6 text-center text-sm text-gray-500">
             {loginMode === 'school' ? (
               <>
-                <p>
-                  Don&apos;t have an account?{' '}
-                  <a href="/signup" className="text-blue-600 font-medium hover:underline">
-                    Sign up
-                  </a>
+                <p className="text-gray-500 text-xs bg-gray-50 rounded-lg p-3 border border-gray-200">
+                  🔒 Access is by invitation only. Contact the platform administrator to get your school registered.
                 </p>
-                <a href="/forgot-password" className="mt-2 inline-block text-blue-600 font-medium hover:underline">
-                  Forgot password?
-                </a>
               </>
             ) : (
               <p className="text-gray-600">

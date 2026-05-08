@@ -27,7 +27,7 @@ const Grades = ({ readOnly = false }) => {
 
   const subjects = ['Math', 'Science', 'English', 'History', 'Geography'];
   const gradeClasses = Array.from({ length: 12 }, (_, i) => `Grade ${i + 1}`);
-  const classes = ['All Classes', ...gradeClasses, ...new Set(localStudents.map(student => student.classes).filter(Boolean))];
+  const classes = ['All Classes', ...new Set([...gradeClasses, ...localStudents.map(student => student.classes).filter(Boolean)])];
 
   const filteredStudents = selectedClass === 'All Classes'
     ? localStudents
@@ -35,7 +35,7 @@ const Grades = ({ readOnly = false }) => {
 
 
   const getStudentGrade = (studentId) => {
-    const student = localStudents.find(student => student.id === studentId);
+    const student = localStudents.find(student => (student._id || student.id) === studentId);
     if (student && student.grades && student.grades[selectedSubject]) {
       return student.grades[selectedSubject];
     }
@@ -59,8 +59,9 @@ const Grades = ({ readOnly = false }) => {
       const payload = {
         date: selectedDate,
         students: filteredStudents.map(student => {
-          const grade = getStudentGrade(student.id);
-          const currentGrade = gradeForm[student.id] || grade;
+          const sid = student._id || student.id;
+          const grade = getStudentGrade(sid);
+          const currentGrade = gradeForm[sid] || grade;
           return {
             name: student.name,
             mobile: student.mobile,
@@ -251,11 +252,12 @@ const Grades = ({ readOnly = false }) => {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {filteredStudents.map((student) => {
-              const grade = getStudentGrade(student.id);
-              const currentGrade = gradeForm[student.id] || grade;
+              const sid = student._id || student.id;
+              const grade = getStudentGrade(sid);
+              const currentGrade = gradeForm[sid] || grade;
   
               return (
-                <tr key={student.id} className="hover:bg-blue-50 min-h-[64px]">
+                <tr key={sid} className="hover:bg-blue-50 min-h-[64px]">
                   <td className="px-6 py-4 text-sm font-medium text-gray-900 align-middle">
                     {student.name}
                   </td>
@@ -270,7 +272,7 @@ const Grades = ({ readOnly = false }) => {
                         type="number"
                         name="marks"
                         value={currentGrade.marks}
-                        onChange={(e) => handleGradeChange(student.id, e)}
+                        onChange={(e) => handleGradeChange(sid, e)}
                         className="w-24 h-10 px-2 py-1 border rounded text-center focus:ring focus:border-blue-400"
                         placeholder="Marks"
                       />
@@ -284,7 +286,7 @@ const Grades = ({ readOnly = false }) => {
                         type="number"
                         name="total"
                         value={currentGrade.total || totalMarks}
-                        onChange={(e) => handleGradeChange(student.id, e)}
+                        onChange={(e) => handleGradeChange(sid, e)}
                         className="w-24 h-10 px-2 py-1 border rounded text-center focus:ring focus:border-blue-400"
                         placeholder="Total"
                       />
@@ -295,7 +297,7 @@ const Grades = ({ readOnly = false }) => {
                       <div className="flex space-x-2 items-center">
                         <button
                           type="button"
-                          onClick={() => handleSaveGrade(student.id)}
+                          onClick={() => handleSaveGrade(sid)}
                           disabled={gradeMutation.isPending}
                           className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 flex items-center disabled:opacity-50"
                         >
@@ -303,7 +305,7 @@ const Grades = ({ readOnly = false }) => {
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDeleteGrade(student.id)}
+                          onClick={() => handleDeleteGrade(sid)}
                           disabled={deleteGradeMutation.isPending}
                           className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 flex items-center disabled:opacity-50"
                         >

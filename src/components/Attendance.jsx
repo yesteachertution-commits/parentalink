@@ -46,7 +46,7 @@ const AttendanceDirectory = ({ isParentView = false }) => {
   const filteredStudents = selectedClass === 'All Classes' ? localStudents : localStudents.filter(s => s.classes === selectedClass);
 
   const getAttendanceStatus = (studentId) => {
-    const student = localStudents.find(s => s.id === studentId);
+    const student = localStudents.find(s => (s._id || s.id) === studentId);
     return student?.attendance?.[selectedDate] || 'Not Marked';
   };
 
@@ -54,7 +54,7 @@ const AttendanceDirectory = ({ isParentView = false }) => {
     const current = getAttendanceStatus(studentId);
     const next = current === 'Present' ? 'Absent' : 'Present';
     setLocalStudents(localStudents.map(s =>
-      s.id === studentId ? { ...s, attendance: { ...s.attendance, [selectedDate]: next } } : s
+      (s._id || s.id) === studentId ? { ...s, attendance: { ...s.attendance, [selectedDate]: next } } : s
     ));
   };
 
@@ -69,11 +69,11 @@ const AttendanceDirectory = ({ isParentView = false }) => {
       await attendanceMutation.mutateAsync({
         date: selectedDate,
         students: filteredStudents.map(s => ({
-          id: s.id, 
-          name: s.name, 
+          id: s._id || s.id,
+          name: s.name,
           fatherName: s.fatherName,
-          mobile: s.mobile, 
-          classes: s.classes, 
+          mobile: s.mobile,
+          classes: s.classes,
           attendance: s.attendance?.[selectedDate],
         }))
       });
@@ -198,10 +198,11 @@ const AttendanceDirectory = ({ isParentView = false }) => {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredStudents.map(student => {
-                  const status = getAttendanceStatus(student.id);
+                  const sid = student._id || student.id;
+                  const status = getAttendanceStatus(sid);
                   const isPresent = status === 'Present';
                   return (
-                    <tr key={student.id} className="hover:bg-blue-50 transition">
+                    <tr key={sid} className="hover:bg-blue-50 transition">
                       <td className="px-4 py-4 text-sm font-medium text-gray-900">{student.name}</td>
                       <td className="px-4 py-4 text-sm text-gray-500 hidden md:table-cell">{student.fatherName}</td>
                       <td className="px-4 py-4 text-sm text-gray-500 hidden md:table-cell">{student.mobile}</td>
@@ -211,7 +212,7 @@ const AttendanceDirectory = ({ isParentView = false }) => {
                         </span>
                       </td>
                       <td className="px-4 py-4">
-                        <button onClick={() => handleToggleAttendance(student.id)}
+                        <button onClick={() => handleToggleAttendance(sid)}
                           className={`px-3 py-1.5 rounded-md text-sm font-medium flex items-center gap-1 ${isPresent ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white'}`}>
                           {isPresent ? <><FiXCircle /><span>Mark Absent</span></> : <><FiCheckCircle /><span>Mark Present</span></>}
                         </button>
@@ -295,7 +296,7 @@ const AttendanceDirectory = ({ isParentView = false }) => {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {groupedByClass[selectedGrade]?.map(student => (
-                    <tr key={student.id} className="hover:bg-blue-50 transition">
+                    <tr key={student._id || student.id} className="hover:bg-blue-50 transition">
                       <td className="px-5 py-3 text-sm font-medium text-gray-800">{student.name}</td>
                       <td className="px-5 py-3 text-sm text-gray-500 hidden md:table-cell">{student.fatherName}</td>
                       <td className="px-5 py-3 text-sm text-gray-500 hidden md:table-cell">{student.mobile}</td>
@@ -312,7 +313,7 @@ const AttendanceDirectory = ({ isParentView = false }) => {
             </div>
           )}
 
-          {isParentView && students.length === 0 && (
+          {isParentView && localStudents.length === 0 && (
             <p className="text-center text-gray-500 py-8">No student record linked to this account.</p>
           )}
 

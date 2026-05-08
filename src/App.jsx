@@ -1,4 +1,4 @@
-import React, { Suspense, lazy } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import MainLayout from './components/MainLayout';
 import ProtectedRoute from './routes/ProtectedRoute';
@@ -13,6 +13,7 @@ const Pricing = lazy(() => import('./pages/Pricing'));
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const Login = lazy(() => import('./pages/Login'));
 const SignupPage = lazy(() => import('./pages/Signup'));
+const Superadmin = lazy(() => import('./pages/Superadmin'));
 
 // Fallback loader
 const FallbackLoader = () => (
@@ -22,6 +23,21 @@ const FallbackLoader = () => (
 );
 
 function App() {
+  useEffect(() => {
+    const requestNotificationPermission = async () => {
+      if ('Notification' in window && 'serviceWorker' in navigator) {
+        if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+          const permission = await Notification.requestPermission();
+          if (permission === 'granted') {
+            console.log('Notification permission granted.');
+            // Subscription logic to backend would go here
+          }
+        }
+      }
+    };
+    requestNotificationPermission();
+  }, []);
+
   return (
     <AuthProvider>
       <Router>
@@ -35,8 +51,13 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<SignupPage/>} />
             <Route path="/dashboard" element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['admin', 'teacher', 'parent']}>
                 <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/superadmin" element={
+              <ProtectedRoute allowedRoles={['superadmin']}>
+                <Superadmin />
               </ProtectedRoute>
             } />
           </Routes>

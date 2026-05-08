@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 
@@ -12,38 +13,103 @@ const BulkImportModal = ({ isOpen, onClose, onImportSuccess }) => {
   
   const { login } = useAuth();
   
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     setError('');
     const selectedFile = e.target.files[0];
     if (selectedFile) {
-      if (selectedFile.type !== 'text/csv' && !selectedFile.name.endsWith('.csv')) {
-        setError('Please upload a valid CSV file.');
+      const isCsv = selectedFile.name.endsWith('.csv') || selectedFile.type === 'text/csv';
+      const isExcel = selectedFile.name.endsWith('.xlsx') || selectedFile.name.endsWith('.xls') || selectedFile.type.includes('excel') || selectedFile.type.includes('spreadsheet');
+
+      if (!isCsv && !isExcel) {
+        setError('Please upload a valid CSV or Excel (.xlsx) file.');
         return;
       }
       setFile(selectedFile);
       
       // Parse file for preview
-      Papa.parse(selectedFile, {
-        header: true,
-        skipEmptyLines: true,
-        complete: function(results) {
-          if (results.data && results.data.length > 0) {
-            setPreview(results.data.slice(0, 3)); // Preview top 3 rows
+      if (isCsv) {
+        Papa.parse(selectedFile, {
+          header: true,
+          skipEmptyLines: true,
+          complete: function(results) {
+            if (results.data && results.data.length > 0) {
+              setPreview(results.data.slice(0, 3)); // Preview top 3 rows
+            }
           }
-        }
-      });
+        });
+      } else if (isExcel) {
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          const bstr = evt.target.result;
+          const wb = XLSX.read(bstr, { type: 'binary' });
+          const wsname = wb.SheetNames[0];
+          const ws = wb.Sheets[wsname];
+          const data = XLSX.utils.sheet_to_json(ws);
+          if (data && data.length > 0) {
+            setPreview(data.slice(0, 3));
+          }
+        };
+        reader.readAsBinaryString(selectedFile);
+      }
     }
   };
 
   const handleDownloadTemplate = () => {
-    const csvContent = "data:text/csv;charset=utf-8,Name,Father Name,Mobile,Roll No,Class\nJohn Doe,Robert Doe,9876543210,101,Grade 10\nJane Smith,William Smith,9876543211,102,Grade 10";
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "student_import_template.csv");
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+    const templateData = [
+      { "Name": "John Doe", "Father Name": "Robert Doe", "Mobile": "9876543210", "Roll No": "101", "Class": "Grade 10" },
+      { "Name": "Jane Smith", "Father Name": "William Smith", "Mobile": "9876543211", "Roll No": "102", "Class": "Grade 10" }
+    ];
+    const ws = XLSX.utils.json_to_sheet(templateData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Students");
+    XLSX.writeFile(wb, "student_import_template.xlsx");
+  };
+
+  const processDataAndUpload = async (parsedData) => {
+    try {
+      const formattedData = parsedData.map(row => {
+        const mobileStr = (row['Mobile'] || row['mobile'] || row['Phone'] || '').toString().trim();
+        const mobileWithCode = mobileStr.startsWith('+91') ? mobileStr : `+91${mobileStr}`;
+        
+        return {
+          name: row['Name'] || row['name'] || '',
+          fatherName: row['Father Name'] || row["Father's Name"] || row['fatherName'] || '',
+          mobile: mobileWithCode,
+          rollNo: (row['Roll No'] || row['rollNo'] || row['Roll Number'] || '').toString().trim(),
+          classes: row['Class'] || row['classes'] || row['Grade'] || ''
+        };
+      });
+
+      const invalidRows = formattedData.filter(d => !d.name || !d.fatherName || d.mobile === '+91' || !d.classes);
+      if (invalidRows.length > 0) {
+         setError(`Found ${invalidRows.length} rows with missing required fields (Name, Father Name, Mobile, Class). Please check your file.`);
+         setLoading(false);
+         return;
+      }
+
+      const backendUrl = import.meta.env.VITE_BACKEND_URL;
+      const token = localStorage.getItem('token');
+      if (token) await login(token);
+
+      await axios.post(
+        `${backendUrl}/api/create/students`,
+        { students: formattedData },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      onImportSuccess();
+      onClose();
+    } catch (err) {
+      console.error("Bulk import error:", err);
+      setError(err.response?.data?.message || "Failed to import students. Please ensure roll numbers and mobiles are unique.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -55,62 +121,41 @@ const BulkImportModal = ({ isOpen, onClose, onImportSuccess }) => {
     setLoading(true);
     setError('');
 
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-      complete: async function(results) {
-        try {
-          const parsedData = results.data.map(row => {
-            // Map common CSV column names to our schema
-            const mobileStr = (row['Mobile'] || row['mobile'] || row['Phone'] || '').toString().trim();
-            const mobileWithCode = mobileStr.startsWith('+91') ? mobileStr : `+91${mobileStr}`;
-            
-            return {
-              name: row['Name'] || row['name'] || '',
-              fatherName: row['Father Name'] || row["Father's Name"] || row['fatherName'] || '',
-              mobile: mobileWithCode,
-              rollNo: (row['Roll No'] || row['rollNo'] || row['Roll Number'] || '').toString().trim(),
-              classes: row['Class'] || row['classes'] || row['Grade'] || ''
-            };
-          });
-
-          // Validate basic fields
-          const invalidRows = parsedData.filter(d => !d.name || !d.fatherName || d.mobile === '+91' || !d.classes);
-          if (invalidRows.length > 0) {
-             setError(`Found ${invalidRows.length} rows with missing required fields (Name, Father Name, Mobile, Class). Please check your CSV.`);
-             setLoading(false);
-             return;
-          }
-
-          const backendUrl = import.meta.env.VITE_BACKEND_URL;
-          const token = localStorage.getItem('token');
-          if (token) await login(token);
-
-          await axios.post(
-            `${backendUrl}/api/create/students`,
-            { students: parsedData },
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-                'Content-Type': 'application/json'
-              }
-            }
-          );
-
-          onImportSuccess();
-          onClose();
-        } catch (err) {
-          console.error("Bulk import error:", err);
-          setError(err.response?.data?.message || "Failed to import students. Please ensure roll numbers and mobiles are unique.");
-        } finally {
+    const isCsv = file.name.endsWith('.csv') || file.type === 'text/csv';
+    
+    if (isCsv) {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          processDataAndUpload(results.data);
+        },
+        error: function(err) {
+          setError("Failed to parse CSV file: " + err.message);
           setLoading(false);
         }
-      },
-      error: function(err) {
-        setError("Failed to parse CSV file: " + err.message);
+      });
+    } else {
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const bstr = evt.target.result;
+          const wb = XLSX.read(bstr, { type: 'binary' });
+          const wsname = wb.SheetNames[0];
+          const ws = wb.Sheets[wsname];
+          const data = XLSX.utils.sheet_to_json(ws);
+          processDataAndUpload(data);
+        } catch (err) {
+          setError("Failed to parse Excel file: " + err.message);
+          setLoading(false);
+        }
+      };
+      reader.onerror = () => {
+        setError("Error reading file");
         setLoading(false);
-      }
-    });
+      };
+      reader.readAsBinaryString(file);
+    }
   };
 
   return (
@@ -144,19 +189,19 @@ const BulkImportModal = ({ isOpen, onClose, onImportSuccess }) => {
             <div className="p-6 space-y-6">
               <div>
                 <p className="text-sm text-gray-600 mb-4">
-                  Upload a CSV file to add multiple students at once. You can download our template to see the required format.
+                  Upload an Excel (.xlsx) or CSV file to add multiple students at once. You can download our template to see the required format.
                 </p>
                 <button 
                   onClick={handleDownloadTemplate}
                   className="text-sm text-blue-600 font-medium hover:underline mb-4 inline-block"
                 >
-                  Download CSV Template
+                  Download Excel Template
                 </button>
                 
                 <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:bg-gray-50 transition cursor-pointer relative">
                   <input 
                     type="file" 
-                    accept=".csv"
+                    accept=".csv,.xlsx,.xls"
                     onChange={handleFileChange}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   />
@@ -164,7 +209,7 @@ const BulkImportModal = ({ isOpen, onClose, onImportSuccess }) => {
                     <svg className="mx-auto h-12 w-12 text-gray-400 mb-3" stroke="currentColor" fill="none" viewBox="0 0 48 48">
                       <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                    <p className="text-sm text-gray-600 font-medium">{file ? file.name : "Click or drag CSV file here"}</p>
+                    <p className="text-sm text-gray-600 font-medium">{file ? file.name : "Click or drag Excel/CSV file here"}</p>
                   </div>
                 </div>
               </div>

@@ -33,7 +33,13 @@ export default defineConfig({
             options: {
               cacheName: 'api-cache',
               expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
-              networkTimeoutSeconds: 10
+              networkTimeoutSeconds: 10,
+              backgroundSync: {
+                name: 'api-sync-queue',
+                options: {
+                  maxRetentionTime: 24 * 60, // 24 hours
+                },
+              },
             }
           }
         ]
