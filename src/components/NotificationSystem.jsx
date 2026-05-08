@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiBell, FiX, FiCheck, FiAlertCircle, FiCalendar, FiDollarSign, FiBook, FiSend } from 'react-icons/fi';
+import { FiBell, FiX, FiCheck, FiAlertCircle, FiCalendar, FiDollarSign, FiBook, FiSend, FiInfo, FiCheckCircle } from 'react-icons/fi';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -65,7 +65,7 @@ const NotificationSystem = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(notifications.map(n => 
-        n.id === id ? { ...n, read: true } : n
+        n._id === id ? { ...n, read: true } : n
       ));
     } catch (error) {
       console.error('Error marking as read:', error);
@@ -79,7 +79,7 @@ const NotificationSystem = () => {
       await axios.delete(`${backendUrl}/api/notifications/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setNotifications(notifications.filter(n => n.id !== id));
+      setNotifications(notifications.filter(n => n._id !== id));
       showSuccessToast('Notification deleted');
     } catch (error) {
       console.error('Error deleting notification:', error);
@@ -234,7 +234,7 @@ const NotificationSystem = () => {
           <div className="divide-y divide-gray-200">
             {filteredNotifications.map((notification) => (
               <div
-                key={notification.id}
+                key={notification._id}
                 className={`p-4 ${!notification.read ? 'bg-blue-50/30' : ''} ${getNotificationColor(notification.type)}`}
               >
                 <div className="flex justify-between">
@@ -246,7 +246,7 @@ const NotificationSystem = () => {
                       <div className="flex items-center justify-between">
                         <h4 className="font-medium text-gray-800">{notification.title}</h4>
                         <span className="text-xs text-gray-500 ml-2">
-                          {new Date(notification.date).toLocaleDateString()}
+                          {new Date(notification.date || notification.createdAt).toLocaleDateString()}
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
@@ -264,7 +264,7 @@ const NotificationSystem = () => {
                   <div className="flex space-x-2 ml-2">
                     {!notification.read && (
                       <button
-                        onClick={() => markAsRead(notification.id)}
+                        onClick={() => markAsRead(notification._id)}
                         className="text-green-500 hover:text-green-700"
                         title="Mark as read"
                       >
@@ -272,7 +272,7 @@ const NotificationSystem = () => {
                       </button>
                     )}
                     <button
-                      onClick={() => deleteNotification(notification.id)}
+                      onClick={() => deleteNotification(notification._id)}
                       className="text-red-500 hover:text-red-700"
                       title="Delete"
                     >

@@ -49,13 +49,13 @@ export const AuthProvider = ({ children }) => {
     setToken(tokenValue);
     try {
       const decoded = decodeToken(tokenValue);
-      const role = decoded.role === "parent" ? "parent" : "school";
       setUser({
         id: decoded.id ?? decoded.sub ?? decoded.userId,
         name: decoded.name || decoded.studentName || "User",
         email: decoded.email ?? null,
-        role,
+        role: decoded.role || "admin", // Use actual role from JWT
         studentId: decoded.studentId ?? null,
+        schoolCode: decoded.schoolCode ?? null,
       });
     } catch {
       logout();
@@ -85,13 +85,13 @@ export const AuthProvider = ({ children }) => {
           setToken(null);
         } else {
           setToken(storedToken);
-          const role = decoded.role === "parent" ? "parent" : "school";
           setUser({
             id: decoded.id ?? decoded.sub ?? decoded.userId,
             name: decoded.name || decoded.studentName || "User",
             email: decoded.email ?? null,
-            role,
+            role: decoded.role || "admin", // Use actual role from JWT
             studentId: decoded.studentId ?? null,
+            schoolCode: decoded.schoolCode ?? null,
           });
         }
       } catch {
