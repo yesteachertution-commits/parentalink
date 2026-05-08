@@ -83,7 +83,7 @@ const Login = () => {
     <div className="min-h-screen flex bg-gradient-to-br from-blue-50 to-indigo-50">
       {/* Left side - Combined Vector illustration and text container */}
       <div className="hidden lg:flex w-1/2">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.5 }}
@@ -96,9 +96,9 @@ const Login = () => {
             </p>
           </div>
           <div className="w-full max-w-md">
-            <img 
-              src="public/6334076.jpg" 
-              alt="Login illustration" 
+            <img
+              src="/6334076.jpg"
+              alt="Login illustration"
               className="w-full h-auto object-contain"
             />
           </div>
@@ -107,7 +107,7 @@ const Login = () => {
 
       {/* Right side - Login form */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-4 sm:p-8">
-        <motion.div 
+        <motion.div
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.3 }}
@@ -115,18 +115,18 @@ const Login = () => {
         >
           <div className="flex justify-center mb-6">
             <div className="w-16 h-16 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                className="h-8 w-8 text-white" 
-                fill="none" 
-                viewBox="0 0 24 24" 
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-8 w-8 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
                 stroke="currentColor"
               >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" 
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"
                 />
               </svg>
             </div>
@@ -139,22 +139,20 @@ const Login = () => {
             <button
               type="button"
               onClick={() => { setLoginMode('school'); setError(''); }}
-              className={`flex-1 py-2.5 text-sm font-medium transition ${
-                loginMode === 'school'
+              className={`flex-1 py-2.5 text-sm font-medium transition ${loginMode === 'school'
                   ? 'bg-blue-600 text-white'
                   : 'bg-white text-gray-600 hover:bg-gray-50'
-              }`}
+                }`}
             >
               School
             </button>
             <button
               type="button"
               onClick={() => { setLoginMode('parent'); setError(''); }}
-              className={`flex-1 py-2.5 text-sm font-medium transition ${
-                loginMode === 'parent'
+              className={`flex-1 py-2.5 text-sm font-medium transition ${loginMode === 'parent'
                   ? 'bg-blue-600 text-white'
                   : 'bg-white text-gray-600 hover:bg-gray-50'
-              }`}
+                }`}
             >
               Parent
             </button>
@@ -245,7 +243,7 @@ const Login = () => {
             )}
 
             {error && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="p-3 bg-red-50 text-red-600 rounded-lg text-sm border border-red-100"
@@ -254,9 +252,9 @@ const Login = () => {
               </motion.div>
             )}
 
-            <button 
-              type="submit" 
-              disabled={loading} 
+            <button
+              type="submit"
+              disabled={loading}
               className="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all shadow-md hover:shadow-lg relative overflow-hidden"
             >
               {loading ? (
