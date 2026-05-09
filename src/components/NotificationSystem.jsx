@@ -4,8 +4,11 @@ import { FiBell, FiX, FiCheck, FiAlertCircle, FiCalendar, FiDollarSign, FiBook, 
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useAuth } from '../context/AuthContext';
 
 const NotificationSystem = () => {
+  const { user } = useAuth();
+  const isParent = user?.role === 'parent';
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,7 +41,7 @@ const NotificationSystem = () => {
     const fetchNotifications = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get(`${backendUrl}/api/notifications`, {
+        const response = await axios.get(`${backendUrl}/api/notification`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setNotifications(response.data);
@@ -61,7 +64,7 @@ const NotificationSystem = () => {
   const markAsRead = async (id) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.patch(`${backendUrl}/api/notifications/${id}/read`, {}, {
+      await axios.patch(`${backendUrl}/api/notification/${id}/read`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(notifications.map(n => 
@@ -76,7 +79,7 @@ const NotificationSystem = () => {
   const deleteNotification = async (id) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`${backendUrl}/api/notifications/${id}`, {
+      await axios.delete(`${backendUrl}/api/notification/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(notifications.filter(n => n._id !== id));
@@ -96,7 +99,7 @@ const NotificationSystem = () => {
     setIsSending(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(`${backendUrl}/api/notifications`, newNotification, {
+      const response = await axios.post(`${backendUrl}/api/notification`, newNotification, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -175,15 +178,17 @@ const NotificationSystem = () => {
       <ToastContainer />
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h2 className="text-2xl font-semibold text-gray-800">Notification Center</h2>
-        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md flex items-center justify-center space-x-2"
-          >
-            <FiSend />
-            <span>New Notification</span>
-          </button>
-        </div>
+        {!isParent && (
+          <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md flex items-center justify-center space-x-2"
+            >
+              <FiSend />
+              <span>New Notification</span>
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="bg-blue-50 p-4 rounded-lg flex items-center justify-between border border-blue-100">
@@ -271,13 +276,15 @@ const NotificationSystem = () => {
                         <FiCheck size={18} />
                       </button>
                     )}
-                    <button
-                      onClick={() => deleteNotification(notification._id)}
-                      className="text-red-500 hover:text-red-700"
-                      title="Delete"
-                    >
-                      <FiX size={18} />
-                    </button>
+                    {!isParent && (
+                      <button
+                        onClick={() => deleteNotification(notification._id)}
+                        className="text-red-500 hover:text-red-700"
+                        title="Delete"
+                      >
+                        <FiX size={18} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

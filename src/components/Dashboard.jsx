@@ -6,6 +6,7 @@ import AttendanceDirectory from './Attendance';
 import Grades from './Grades';
 import TeacherDirectory from './TeacherDirectory';
 import Analytics from './Analytics';
+import NotificationSystem from './NotificationSystem';
 import { useStudents } from '../hooks/useStudents';
 import { useAuth } from '../context/AuthContext';
 import { usePushNotifications } from '../hooks/usePushNotifications';
@@ -316,7 +317,7 @@ const Dashboard = () => {
                                     <Grades readOnly={isParent} />
                                 </motion.div>
                             )}
-                            {/* {activeTab === 'notifications' && (
+                            {activeTab === 'notifications' && (
                                 <motion.div
                                     key="notifications"
                                     layout
@@ -328,7 +329,7 @@ const Dashboard = () => {
                                 >
                                     <NotificationSystem />
                                 </motion.div>
-                            )} */}
+                            )}
                         </AnimatePresence>
                     </div>
                 </div>
