@@ -205,25 +205,41 @@ const NotificationSystem = () => {
         </span>
       </div>
 
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab('all')}
-            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'all' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-          >
-            All Notifications
-          </button>
-          {notificationTypes.map((type) => (
+      {/* Horizontally scrollable tab strip — safe on all phone widths */}
+      <div style={{ borderBottom: '1px solid #e5e7eb' }}>
+        <div style={{
+          display: 'flex',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+          gap: 0,
+          padding: '0 2px',
+        }}
+        className="hide-scrollbar">
+          {[{ value: 'all', label: 'All', icon: null }, ...notificationTypes].map(type => (
             <button
               key={type.value}
               onClick={() => setActiveTab(type.value)}
-              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center ${activeTab === type.value ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '12px 16px',
+                border: 'none', background: 'none',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: activeTab === type.value ? 700 : 500,
+                color: activeTab === type.value ? '#2563eb' : '#6b7280',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                borderBottom: activeTab === type.value ? '2px solid #2563eb' : '2px solid transparent',
+                transition: 'all 0.15s',
+                WebkitTapHighlightColor: 'transparent',
+              }}
             >
               {type.icon}
-              {type.label}
+              {type.label || 'All Notifications'}
             </button>
           ))}
-        </nav>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100">

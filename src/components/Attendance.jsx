@@ -159,21 +159,50 @@ const AttendanceDirectory = ({ isParentView = false }) => {
       {/* ── MARK ATTENDANCE VIEW ── */}
       {!isParentView && view === 'mark' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
-          <div className="flex flex-wrap gap-3">
-            <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)}
-              className="px-4 py-2 border border-blue-200 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-blue-500">
-              {classes.map((cls, i) => <option key={i} value={cls}>{cls}</option>)}
-            </select>
-            <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
-              className="px-4 py-2 border border-blue-200 rounded-lg bg-white text-gray-700 focus:ring-2 focus:ring-blue-500" />
-            <button onClick={handleSaveAttendance} disabled={attendanceMutation.isPending}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">
-              {attendanceMutation.isPending ? 'Saving...' : <><FiSave /><span>Save Attendance</span></>}
-            </button>
-            <button onClick={handleNotify} disabled={attendanceNotify.isPending}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm">
-              {attendanceNotify.isPending ? 'Notifying...' : <><FiSend /><span>Notify Attendance</span></>}
-            </button>
+          {/* Filter controls — stack on mobile, row on desktop */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* Row 1: selects */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <select value={selectedClass} onChange={e => setSelectedClass(e.target.value)}
+                style={{
+                  flex: '1 1 140px', minWidth: 0,
+                  padding: '10px 12px', border: '1px solid #e2e8f0',
+                  borderRadius: 10, background: '#fff', fontSize: 14, color: '#374151',
+                  appearance: 'auto',
+                }}>
+                {classes.map((cls, i) => <option key={i} value={cls}>{cls}</option>)}
+              </select>
+              <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
+                style={{
+                  flex: '1 1 140px', minWidth: 0,
+                  padding: '10px 12px', border: '1px solid #e2e8f0',
+                  borderRadius: 10, background: '#fff', fontSize: 14, color: '#374151',
+                }}
+              />
+            </div>
+            {/* Row 2: action buttons — full width on mobile */}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={handleSaveAttendance} disabled={attendanceMutation.isPending}
+                style={{
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  padding: '10px 12px', background: '#2563eb', color: '#fff',
+                  borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700,
+                  opacity: attendanceMutation.isPending ? 0.6 : 1,
+                }}>
+                <FiSave size={14} />
+                {attendanceMutation.isPending ? 'Saving...' : 'Save'}
+              </button>
+              <button onClick={handleNotify} disabled={attendanceNotify.isPending}
+                style={{
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  padding: '10px 12px', background: '#7c3aed', color: '#fff',
+                  borderRadius: 10, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 700,
+                  opacity: attendanceNotify.isPending ? 0.6 : 1,
+                }}>
+                <FiSend size={14} />
+                {attendanceNotify.isPending ? 'Notifying...' : 'Notify'}
+              </button>
+            </div>
           </div>
 
           <div className="bg-blue-50 p-4 rounded-lg flex justify-between border border-blue-100">
@@ -185,13 +214,14 @@ const AttendanceDirectory = ({ isParentView = false }) => {
 
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto">
+          {/* Desktop Table View */}
+          <div className="hidden md:block bg-white rounded-lg shadow-sm border border-gray-100 overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-blue-50">
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-medium text-blue-700 uppercase">Student Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-blue-700 uppercase hidden md:table-cell">Father's Name</th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-blue-700 uppercase hidden md:table-cell">Mobile</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-blue-700 uppercase">Father's Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-blue-700 uppercase">Mobile</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-blue-700 uppercase">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-blue-700 uppercase">Action</th>
                 </tr>
@@ -204,8 +234,8 @@ const AttendanceDirectory = ({ isParentView = false }) => {
                   return (
                     <tr key={sid} className="hover:bg-blue-50 transition">
                       <td className="px-4 py-4 text-sm font-medium text-gray-900">{student.name}</td>
-                      <td className="px-4 py-4 text-sm text-gray-500 hidden md:table-cell">{student.fatherName}</td>
-                      <td className="px-4 py-4 text-sm text-gray-500 hidden md:table-cell">{student.mobile}</td>
+                      <td className="px-4 py-4 text-sm text-gray-500">{student.fatherName}</td>
+                      <td className="px-4 py-4 text-sm text-gray-500">{student.mobile}</td>
                       <td className="px-4 py-4">
                         <span className={`px-2 py-1 text-xs font-semibold rounded-full ${isPresent ? 'bg-green-100 text-green-800' : status === 'Absent' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
                           {status}
@@ -222,6 +252,32 @@ const AttendanceDirectory = ({ isParentView = false }) => {
                 })}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-3">
+            {filteredStudents.map(student => {
+              const sid = student._id || student.id;
+              const status = getAttendanceStatus(sid);
+              const isPresent = status === 'Present';
+              return (
+                <div key={sid} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex flex-col gap-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h4 className="font-bold text-gray-900">{student.name}</h4>
+                      <p className="text-xs text-gray-500">Father: {student.fatherName}</p>
+                    </div>
+                    <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-full ${isPresent ? 'bg-green-100 text-green-800' : status === 'Absent' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
+                      {status}
+                    </span>
+                  </div>
+                  <button onClick={() => handleToggleAttendance(sid)}
+                    className={`w-full py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition shadow-sm ${isPresent ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`}>
+                    {isPresent ? <><FiXCircle /><span>Mark Absent</span></> : <><FiCheckCircle /><span>Mark Present</span></>}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         </motion.div>
       )}

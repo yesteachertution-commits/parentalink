@@ -1,4 +1,115 @@
 @import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────
+   GLOBAL RESET & VIEWPORT FIXES
+   ───────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 html {
   scroll-behavior: smooth;
+  /* Prevent horizontal scroll on any phone */
+  overflow-x: hidden;
+  /* Use dvh (dynamic viewport height) — critical for iOS Safari 
+     where address bar changes height. Falls back to svh then vh. */
+  height: 100%;
 }
+
+body {
+  height: 100%;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;       /* Prevent pull-to-refresh in PWA */
+  -webkit-tap-highlight-color: transparent;  /* Remove tap flash on iOS */
+  -webkit-text-size-adjust: 100%;    /* Prevent iOS auto font-size scaling */
+  text-size-adjust: 100%;
+}
+
+#root {
+  height: 100%;
+  overflow-x: hidden;
+}
+
+/* ─────────────────────────────────────────────────────────
+   iOS SAFE AREA TOKEN  (notch / home bar support)
+   ───────────────────────────────────────────────────────── */
+:root {
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --nav-h:       64px;   /* mobile bottom nav height */
+}
+
+/* ─────────────────────────────────────────────────────────
+   INPUTS — prevent iOS zoom on focus (font-size < 16px)
+   ───────────────────────────────────────────────────────── */
+input, select, textarea {
+  font-size: 16px !important;  /* iOS zooms in on inputs < 16px */
+}
+
+/* ─────────────────────────────────────────────────────────
+   SCROLLBAR (desktop only — hidden on mobile touch)
+   ───────────────────────────────────────────────────────── */
+@media (pointer: fine) {
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+}
+
+/* ─────────────────────────────────────────────────────────
+   UTILITY CLASSES
+   ───────────────────────────────────────────────────────── */
+
+/* Full dvh with vh fallback */
+.h-dvh {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.min-h-dvh {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Glassmorphism */
+.glass {
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Bottom nav safe padding */
+.pb-safe {
+  padding-bottom: calc(var(--nav-h) + var(--safe-bottom) + 8px);
+}
+
+/* Cards — prevent any child from causing overflow */
+.card {
+  overflow: hidden;
+  word-break: break-word;
+}
+
+/* Horizontal scroll container — thin scrollbar */
+.scroll-x {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.scroll-x::-webkit-scrollbar { height: 3px; }
+.scroll-x::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+
+/* Prevent long text from breaking layout */
+.truncate-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Hide scrollbar (used on horizontally scrollable tab strips) */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+

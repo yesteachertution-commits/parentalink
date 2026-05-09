@@ -11,329 +11,417 @@ import { useStudents } from '../hooks/useStudents';
 import { useAuth } from '../context/AuthContext';
 import { usePushNotifications } from '../hooks/usePushNotifications';
 import { usePWAInstall } from '../hooks/usePWAInstall';
-import { FiDownload, FiInfo } from 'react-icons/fi';
+import {
+    FiDownload, FiBell, FiBarChart2, FiClock,
+    FiBook, FiUsers, FiUser
+} from 'react-icons/fi';
 
+// ── Tab configuration ────────────────────────────────────────────────────────
+const TAB_META = {
+    analytics:     { label: 'Overview',   Icon: FiBarChart2 },
+    attendance:    { label: 'Attendance', Icon: FiClock },
+    grades:        { label: 'Grades',     Icon: FiBook },
+    notifications: { label: 'Alerts',     Icon: FiBell },
+    students:      { label: 'Students',   Icon: FiUsers },
+    teachers:      { label: 'Teachers',   Icon: FiUser },
+};
 
+// Inline styles — guaranteed cross-browser, won't be purged by Tailwind
+const styles = {
+    // Root shell: fills the entire dynamic viewport height
+    root: {
+        display: 'flex',
+        flexDirection: 'column',
+        minHeight: '100dvh',       // dvh — correct for iOS Safari (bar shrinks)
+        minHeightFallback: '100vh',// applied via CSS fallback below
+        background: 'linear-gradient(135deg, #f0f4ff 0%, #e8f4fd 50%, #f3eeff 100%)',
+        overflowX: 'hidden',
+        position: 'relative',
+    },
+    // Mobile top bar
+    mobileHeader: {
+        position: 'sticky',
+        top: 0,
+        zIndex: 40,
+        background: 'rgba(255,255,255,0.95)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(226,232,240,0.8)',
+        boxShadow: '0 1px 12px rgba(0,0,0,0.06)',
+    },
+    // Bottom nav bar — position: fixed, bypasses all transform contexts
+    bottomNav: {
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 9999,
+        background: 'rgba(255,255,255,0.97)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        borderTop: '1px solid rgba(226,232,240,0.9)',
+        boxShadow: '0 -2px 16px rgba(0,0,0,0.08)',
+        // Push content above iOS home indicator
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+    },
+};
 
 const Dashboard = () => {
-    const { user } = useAuth();
-    const isParent = user?.role === 'parent';
-    const isTeacher = user?.role === 'teacher';
-    const isAdmin = user?.role === 'admin';
-    const tabs = useMemo(
-        () => {
-            if (isParent) return ['analytics', 'attendance', 'grades', 'notifications'];
-            if (isAdmin) return ['analytics', 'students', 'teachers', 'attendance', 'grades', 'notifications'];
-            return ['analytics', 'attendance', 'grades', 'notifications']; // teacher role
-        },
-        [isParent, isAdmin]
-    );
+    const { user }    = useAuth();
+    const isParent    = user?.role === 'parent';
+    const isAdmin     = user?.role === 'admin';
 
-    const [activeTab, setActiveTab] = useState('analytics');
+    const tabs = useMemo(() => {
+        if (isParent) return ['analytics', 'attendance', 'grades', 'notifications'];
+        if (isAdmin)  return ['analytics', 'students', 'teachers', 'attendance', 'grades', 'notifications'];
+        return ['analytics', 'attendance', 'grades', 'notifications'];
+    }, [isParent, isAdmin]);
+
+    const [activeTab, setActiveTab]         = useState('analytics');
     const [showPushBanner, setShowPushBanner] = useState(false);
 
-    const { data: studentsData } = useStudents({ limit: 1000 });
-    const { permission, isSubscribed, isLoading: pushLoading, subscribe, isPushSupported } = usePushNotifications(isParent);
+    const { data: studentsData }  = useStudents({ limit: 1000 });
+    const {
+        permission, isSubscribed,
+        isLoading: pushLoading, subscribe, isPushSupported
+    } = usePushNotifications(isParent);
     const { isInstallable, handleInstall } = usePWAInstall();
 
     useEffect(() => {
-        if (isParent) {
-            setActiveTab((t) => (t === 'students' || t === 'notifications' ? 'attendance' : t));
+        if (isParent && ['students', 'teachers'].includes(activeTab)) {
+            setActiveTab('analytics');
         }
     }, [isParent]);
 
-    // Show banner if parent hasn't granted permission yet
     useEffect(() => {
         if (isParent && isPushSupported && permission === 'default' && !isSubscribed) {
-            const timer = setTimeout(() => setShowPushBanner(true), 1500);
-            return () => clearTimeout(timer);
+            const t = setTimeout(() => setShowPushBanner(true), 1500);
+            return () => clearTimeout(t);
         }
-        if (permission === 'granted' || isSubscribed) {
-            setShowPushBanner(false);
-        }
+        if (permission === 'granted' || isSubscribed) setShowPushBanner(false);
     }, [isParent, isPushSupported, permission, isSubscribed]);
 
-
-    // Animation variants
-    const tabContentVariants = {
-        hidden: {
-            opacity: 0,
-            y: 10,
-            transition: {
-                duration: 0.2,
-                ease: [0.22, 1, 0.36, 1]
-            }
-        },
-        visible: {
-            opacity: 1,
-            y: 0,
-            transition: {
-                duration: 0.3,
-                ease: [0.22, 1, 0.36, 1],
-                when: "beforeChildren",
-                staggerChildren: 0.05
-            }
-        },
-        exit: {
-            opacity: 0,
-            y: -5,
-            transition: {
-                duration: 0.2,
-                ease: [0.22, 1, 0.36, 1]
-            }
-        }
-    };
-
-    const tabButtonVariants = {
-        rest: { scale: 1 },
-        hover: { scale: 1.05 },
-        tap: { scale: 0.98 },
-        active: {
-            backgroundColor: "#2563eb",
-            color: "#ffffff",
-            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)"
-        }
+    const pageVariants = {
+        initial: { opacity: 0, y: 10 },
+        animate: { opacity: 1, y: 0, transition: { duration: 0.25, ease: [0.22, 1, 0.36, 1] } },
+        exit:    { opacity: 0, y: -6, transition: { duration: 0.15 } },
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-6">
-            <div className="max-w-7xl mx-auto relative">
+        // ── Root: no transform here — keeps `position:fixed` children working ──
+        <div style={styles.root}>
 
-                {/* PWA Push Notification Permission Banner — parents only */}
-                <AnimatePresence>
-                    {showPushBanner && (
-                        <motion.div
-                            initial={{ opacity: 0, y: -20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            className="mb-4 bg-blue-600 text-white rounded-xl px-5 py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg"
-                        >
-                            <div className="flex items-center gap-3">
-                                <span className="text-2xl">🔔</span>
-                                <div>
-                                    <p className="font-semibold text-sm">Enable Notifications</p>
-                                    <p className="text-xs text-blue-100">Get instant alerts when attendance or marks are updated for your child.</p>
+            {/* ══ MOBILE HEADER ════════════════════════════════════════════ */}
+            <header className="md:hidden" style={styles.mobileHeader}>
+                {/* Safe area top padding for notched phones */}
+                <div style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 16px',
+                        // Prevent overflow — critical for long school names
+                        overflow: 'hidden',
+                    }}>
+                        {/* Brand */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
+                            <div style={{
+                                width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                                background: 'linear-gradient(135deg,#2563eb,#4f46e5)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                boxShadow: '0 4px 10px rgba(37,99,235,0.35)',
+                            }}>
+                                <span style={{ color: '#fff', fontWeight: 900, fontSize: 16 }}>P</span>
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                                <div style={{
+                                    fontWeight: 800, fontSize: 15, color: '#111827',
+                                    letterSpacing: '-0.3px', lineHeight: 1.2,
+                                }}>ParentaLink</div>
+                                {/* Role badge — truncated to never overflow */}
+                                <div style={{
+                                    fontSize: 10, color: '#6b7280', fontWeight: 600,
+                                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                                    maxWidth: '100%',
+                                }}>
+                                    {user?.role === 'parent' ? '👨‍👩‍👦 Parent Portal' :
+                                     user?.role === 'admin'  ? '🏫 Admin Panel' : '👩‍🏫 Teacher Panel'}
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                                <button
-                                    onClick={subscribe}
-                                    disabled={pushLoading}
-                                    className="bg-white text-blue-600 text-sm font-semibold px-4 py-2 rounded-lg hover:bg-blue-50 transition disabled:opacity-60"
-                                >
-                                    {pushLoading ? 'Enabling...' : 'Enable'}
-                                </button>
-                                <button
-                                    onClick={() => setShowPushBanner(false)}
-                                    className="text-blue-200 hover:text-white text-sm px-2"
-                                >
-                                    ✕
-                                </button>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
+                        </div>
 
-                {/* Header with Profile */}
-                <div className="relative mb-8 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        {isInstallable && (
-                            <motion.button
-                                whileHover={{ scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={handleInstall}
-                                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold shadow-md hover:bg-blue-700 transition"
+                        {/* Right actions */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                            {isInstallable && (
+                                <button onClick={handleInstall} style={{
+                                    display: 'flex', alignItems: 'center', gap: 5,
+                                    background: '#2563eb', color: '#fff',
+                                    padding: '7px 12px', borderRadius: 9,
+                                    fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer',
+                                    boxShadow: '0 2px 8px rgba(37,99,235,0.35)',
+                                    whiteSpace: 'nowrap',
+                                }}>
+                                    <FiDownload size={13} />
+                                    Install
+                                </button>
+                            )}
+                            <ProfileDropdown />
+                        </div>
+                    </div>
+
+                    {/* Push notification permission banner */}
+                    <AnimatePresence>
+                        {showPushBanner && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                style={{ overflow: 'hidden', background: '#2563eb' }}
                             >
-                                <FiDownload className="text-lg" />
-                                <span className="hidden sm:inline">Download App</span>
-                                <span className="sm:hidden">Install</span>
+                                <div style={{
+                                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                    padding: '10px 16px', gap: 12,
+                                }}>
+                                    <div style={{ color: '#fff', fontSize: 13, fontWeight: 500, flex: 1, minWidth: 0 }}>
+                                        🔔 Enable alerts for instant updates
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                                        <button onClick={subscribe} disabled={pushLoading} style={{
+                                            background: '#fff', color: '#2563eb',
+                                            padding: '5px 12px', borderRadius: 8,
+                                            fontSize: 12, fontWeight: 700, border: 'none', cursor: 'pointer',
+                                        }}>
+                                            {pushLoading ? '...' : 'Enable'}
+                                        </button>
+                                        <button onClick={() => setShowPushBanner(false)} style={{
+                                            background: 'none', border: 'none', color: '#bfdbfe',
+                                            fontSize: 18, cursor: 'pointer', lineHeight: 1, padding: 2,
+                                        }}>×</button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            </header>
+
+            {/* ══ DESKTOP HEADER ═══════════════════════════════════════════ */}
+            <header className="hidden md:block" style={{
+                background: '#fff', borderBottom: '1px solid #e5e7eb',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+            }}>
+                <div style={{ maxWidth: 1280, margin: '0 auto', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{
+                            width: 44, height: 44, borderRadius: 14,
+                            background: 'linear-gradient(135deg,#2563eb,#4f46e5)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: '0 6px 16px rgba(37,99,235,0.3)',
+                        }}>
+                            <span style={{ color: '#fff', fontWeight: 900, fontSize: 20 }}>P</span>
+                        </div>
+                        <div>
+                            <div style={{ fontWeight: 800, fontSize: 20, color: '#111827', letterSpacing: '-0.5px' }}>ParentaLink</div>
+                            <div style={{ fontSize: 12, color: '#9ca3af', fontWeight: 500 }}>
+                                {isParent ? "Your child's academic dashboard" : 'Academic management dashboard'}
+                            </div>
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        {isInstallable && (
+                            <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                                onClick={handleInstall} style={{
+                                    display: 'flex', alignItems: 'center', gap: 8,
+                                    background: '#2563eb', color: '#fff',
+                                    padding: '9px 18px', borderRadius: 12,
+                                    fontSize: 14, fontWeight: 700, border: 'none', cursor: 'pointer',
+                                    boxShadow: '0 4px 12px rgba(37,99,235,0.3)',
+                                }}>
+                                <FiDownload size={15} /> Download App
                             </motion.button>
                         )}
-                        {/* iOS / Mobile Info */}
-                        <div className="group relative">
-                            <div className="p-2 text-gray-400 hover:text-blue-500 transition cursor-help">
-                                <FiInfo size={20} />
-                            </div>
-                            <div className="absolute left-0 top-full mt-2 w-64 bg-gray-900 text-white text-[11px] p-3 rounded-xl opacity-0 group-hover:opacity-100 transition-all transform scale-95 group-hover:scale-100 pointer-events-none z-50 shadow-2xl border border-gray-800">
-                                <p className="font-bold mb-1 text-blue-400">Installation Guide:</p>
-                                <ul className="space-y-1 text-gray-300">
-                                    <li>• <strong>Android/Chrome:</strong> Click the "Download App" button above.</li>
-                                    <li>• <strong>iPhone (iOS):</strong> Tap <span className="text-white">Share</span> then <span className="text-white">"Add to Home Screen"</span>.</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="shrink-0">
-                        <ProfileDropdown />
-                    </div>
-                    <div className="flex justify-center">
-                        <div className="text-center">
-                            <motion.h1
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.4 }}
-                                className="text-3xl md:text-4xl font-bold text-gray-800 mb-2"
-                            >
-                                Academic Dashboard
-                            </motion.h1>
-                            <motion.p
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.1, duration: 0.4 }}
-                                className="text-base md:text-lg text-gray-600"
-                            >
-                                {isParent
-                                    ? 'View your child\'s attendance and marks'
-                                    : 'Manage your educational data with elegance'}
-                            </motion.p>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Tabs */}
-                <div className="mb-8 gap-2">
-  <motion.div
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: 0.2, duration: 0.3 }}
-    className="flex bg-white p-1 rounded-lg shadow-md"
-  >
-    {tabs.map((tab) => (
-      <motion.button
-        key={tab}
-        variants={tabButtonVariants}
-        initial="rest"
-        whileHover="hover"
-        whileTap="tap"
-        animate={activeTab === tab ? 'active' : 'rest'}
-        onClick={() => setActiveTab(tab)}
-        className={`flex-1 flex flex-col items-center justify-center px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-          activeTab === tab ? '' : 'text-gray-600 hover:bg-blue-50'
-        }`}
-      >
-        <div className="flex flex-col items-center space-y-1">
-          {tab === 'analytics' && (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-            </svg>
-          )}
-          {tab === 'students' && (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-          )}
-          {tab === 'teachers' && (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-          )}
-          {tab === 'attendance' && (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          )}
-          {tab === 'grades' && (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          )}
-          {tab === 'notifications' && (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405M15 17V9a3 3 0 00-6 0v8m0 0H5l1.405-1.405" />
-            </svg>
-          )}
-          <span className="capitalize">{tab}</span>
-        </div>
-      </motion.button>
-    ))}
-  </motion.div>
-</div>
-                {/* Content with Animation */}
-                <div className="bg-[#eef6ff] rounded-xl shadow-xl overflow-hidden border border-gray-100">
-                    <div className="p-4 md:p-8">
-                        <AnimatePresence mode="wait">
-                            {activeTab === 'analytics' && (
-                                <motion.div
-                                    key="analytics"
-                                    layout
-                                    initial={{ opacity: 0, y: 30 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    transition={{ duration: 0.5, ease: "easeInOut" }}
-                                >
-                                    <Analytics students={studentsData?.students || []} />
-                                </motion.div>
-                            )}
-
-                            {activeTab === 'students' && !isParent && (
-                                <motion.div
-                                    key="students"
-                                    layout
-                                    initial={{ opacity: 0, y: 30 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    transition={{ duration: 0.5, ease: "easeInOut" }}
-                                >
-                                    <StudentDirectory />
-                                </motion.div>
-                            )}
-
-                            {activeTab === 'teachers' && isAdmin && (
-                                <motion.div
-                                    key="teachers"
-                                    layout
-                                    initial={{ opacity: 0, y: 30 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    transition={{ duration: 0.5, ease: "easeInOut" }}
-                                >
-                                    <TeacherDirectory />
-                                </motion.div>
-                            )}
-
-                            {activeTab === 'attendance' && (
-                                <motion.div
-                                    key="attendance"
-                                    layout
-                                    initial={{ opacity: 0, y: 30 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    transition={{ duration: 0.5, ease: "easeInOut" }}
-                                >
-                                    <AttendanceDirectory isParentView={isParent} />
-                                </motion.div>
-                            )}
-
-                            {activeTab === 'grades' && (
-                                <motion.div
-                                    key="grades"
-                                    layout
-                                    className="p-8 text-center text-gray-500"
-                                    initial={{ opacity: 0, y: 30 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    transition={{ duration: 0.5, ease: "easeInOut" }}
-                                >
-                                    <Grades readOnly={isParent} />
-                                </motion.div>
-                            )}
-                            {activeTab === 'notifications' && (
-                                <motion.div
-                                    key="notifications"
-                                    layout
-                                    className="p-8 text-center text-gray-500"
-                                    initial={{ opacity: 0, y: 30 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    transition={{ duration: 0.5, ease: "easeInOut" }}
-                                >
-                                    <NotificationSystem />
+                        <AnimatePresence>
+                            {showPushBanner && (
+                                <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
+                                    exit={{ opacity: 0, x: 20 }}
+                                    style={{
+                                        background: '#eff6ff', border: '1px solid #bfdbfe',
+                                        color: '#1d4ed8', fontSize: 13, padding: '8px 14px',
+                                        borderRadius: 12, display: 'flex', alignItems: 'center', gap: 10,
+                                    }}>
+                                    🔔 Enable notifications
+                                    <button onClick={subscribe} disabled={pushLoading} style={{
+                                        background: '#2563eb', color: '#fff', border: 'none',
+                                        padding: '4px 10px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                                    }}>{pushLoading ? '...' : 'Enable'}</button>
+                                    <button onClick={() => setShowPushBanner(false)} style={{
+                                        background: 'none', border: 'none', color: '#93c5fd', fontSize: 16, cursor: 'pointer',
+                                    }}>×</button>
                                 </motion.div>
                             )}
                         </AnimatePresence>
+                        <ProfileDropdown />
                     </div>
                 </div>
+            </header>
+
+            {/* ══ DESKTOP TABS ═════════════════════════════════════════════ */}
+            <div className="hidden md:block" style={{ background: '#fff', borderBottom: '1px solid #f1f5f9' }}>
+                <div style={{ maxWidth: 1280, margin: '0 auto', padding: '0 24px', display: 'flex', gap: 2 }}>
+                    {tabs.map(tab => {
+                        const { label, Icon } = TAB_META[tab] || {};
+                        const active = activeTab === tab;
+                        return (
+                            <button key={tab} onClick={() => setActiveTab(tab)}
+                                style={{
+                                    position: 'relative', display: 'flex', alignItems: 'center', gap: 7,
+                                    padding: '14px 18px', border: 'none', background: 'none', cursor: 'pointer',
+                                    fontSize: 13, fontWeight: active ? 700 : 500,
+                                    color: active ? '#2563eb' : '#6b7280',
+                                    transition: 'color 0.15s',
+                                }}
+                            >
+                                {Icon && <Icon size={15} />}
+                                {label}
+                                {active && (
+                                    <motion.div layoutId="desk-tab-line"
+                                        style={{
+                                            position: 'absolute', bottom: 0, left: 8, right: 8,
+                                            height: 2, background: '#2563eb', borderRadius: 2,
+                                        }}
+                                        transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                    />
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
+
+            {/* ══ MAIN SCROLLABLE CONTENT ══════════════════════════════════ */}
+            {/*
+                On mobile: bottom padding = nav height + safe-area + 8px gap
+                This ensures content is never hidden behind the fixed bottom bar.
+            */}
+            <main style={{
+                flex: 1,
+                overflowY: 'auto',
+                overflowX: 'hidden',
+                WebkitOverflowScrolling: 'touch',
+                padding: '16px',
+                paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px) + 16px)',
+            }}
+            className="md:!pb-8 md:px-6 md:py-6">
+                <div style={{ maxWidth: 1280, margin: '0 auto', width: '100%' }}>
+                    <AnimatePresence mode="wait">
+                        <motion.div key={activeTab}
+                            variants={pageVariants}
+                            initial="initial" animate="animate" exit="exit"
+                            style={{ width: '100%' }}>
+
+                            {activeTab === 'analytics' && (
+                                <Analytics students={studentsData?.students || []} />
+                            )}
+                            {activeTab === 'students' && !isParent && <StudentDirectory />}
+                            {activeTab === 'teachers' && isAdmin && <TeacherDirectory />}
+                            {activeTab === 'attendance' && <AttendanceDirectory isParentView={isParent} />}
+                            {activeTab === 'grades' && <Grades readOnly={isParent} />}
+                            {activeTab === 'notifications' && <NotificationSystem />}
+
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
+            </main>
+
+            {/* ══ MOBILE BOTTOM NAVIGATION ═════════════════════════════════ */}
+            {/*
+                ARCHITECTURE NOTE:
+                This nav is a DIRECT child of the root <div> which has NO
+                transform/filter/will-change applied — so position:fixed
+                works correctly on ALL browsers (Chrome, Safari iOS, Firefox,
+                Samsung Internet, WebView in Android PWA).
+            */}
+            <nav className="md:hidden" style={styles.bottomNav}>
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-around',
+                    alignItems: 'stretch',
+                    padding: '6px 4px 6px',
+                    maxWidth: 480,
+                    margin: '0 auto',
+                }}>
+                    {tabs.map(tab => {
+                        const { label, Icon } = TAB_META[tab] || {};
+                        const active = activeTab === tab;
+                        return (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                style={{
+                                    flex: 1,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 3,
+                                    padding: '4px 0',
+                                    border: 'none',
+                                    background: 'none',
+                                    cursor: 'pointer',
+                                    position: 'relative',
+                                    WebkitTapHighlightColor: 'transparent',
+                                    minWidth: 0,   // prevent flex overflow
+                                }}
+                            >
+                                {/* Animated highlight pill */}
+                                {active && (
+                                    <motion.div
+                                        layoutId="mobile-nav-pill"
+                                        style={{
+                                            position: 'absolute',
+                                            top: 0, bottom: 0,
+                                            left: 4, right: 4,
+                                            borderRadius: 16,
+                                            background: 'rgba(37,99,235,0.09)',
+                                        }}
+                                        transition={{ type: 'spring', stiffness: 450, damping: 35 }}
+                                    />
+                                )}
+
+                                {/* Icon */}
+                                <motion.div
+                                    animate={{
+                                        scale: active ? 1.15 : 1,
+                                        color: active ? '#2563eb' : '#9ca3af',
+                                    }}
+                                    transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+                                    style={{ position: 'relative', zIndex: 1, color: active ? '#2563eb' : '#9ca3af' }}
+                                >
+                                    {Icon && <Icon size={21} strokeWidth={active ? 2.4 : 1.7} />}
+                                </motion.div>
+
+                                {/* Label — truncated to prevent overflow on tiny screens */}
+                                <span style={{
+                                    position: 'relative', zIndex: 1,
+                                    fontSize: 9,
+                                    fontWeight: active ? 800 : 600,
+                                    color: active ? '#2563eb' : '#9ca3af',
+                                    letterSpacing: '0.3px',
+                                    textTransform: 'uppercase',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    maxWidth: '100%',
+                                    paddingLeft: 2, paddingRight: 2,
+                                    transition: 'color 0.15s',
+                                }}>
+                                    {label}
+                                </span>
+                            </button>
+                        );
+                    })}
+                </div>
+            </nav>
         </div>
     );
 };
