@@ -5,14 +5,17 @@ import 'react-toastify/dist/ReactToastify.css';
 import { FiCheckCircle, FiXCircle, FiSend, FiSave, FiClock, FiList, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 
+import { useAuth } from '../context/AuthContext';
 
 const AttendanceDirectory = ({ isParentView = false }) => {
-  const { data, isLoading } = useStudents({ limit: 1000 }); // Fetch all for marking
+  const { user } = useAuth();
+  const initialClass = user?.assignedClasses?.[0] || 'All Classes';
+  const [selectedClass, setSelectedClass] = useState(initialClass);
+  const { data, isLoading } = useStudents({ limit: 200, classes: selectedClass }); 
   const { attendanceMutation } = useStudentMutations();
   const { attendanceNotify } = useNotifications();
 
   const [localStudents, setLocalStudents] = useState([]);
-  const [selectedClass, setSelectedClass] = useState('All Classes');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [view, setView] = useState(() => (isParentView ? 'history' : 'mark'));
 
@@ -47,7 +50,10 @@ const AttendanceDirectory = ({ isParentView = false }) => {
 
   const getAttendanceStatus = (studentId) => {
     const student = localStudents.find(s => (s._id || s.id) === studentId);
-    return student?.attendance?.[selectedDate] || 'Not Marked';
+    if (student?.attendance?.[selectedDate]) return student.attendance[selectedDate];
+    const leave = student?.leaveRequests?.find(l => l.date === selectedDate);
+    if (leave) return `Leave (${leave.status})`;
+    return 'Not Marked';
   };
 
   const handleToggleAttendance = (studentId) => {
@@ -237,7 +243,7 @@ const AttendanceDirectory = ({ isParentView = false }) => {
                       <td className="px-4 py-4 text-sm text-gray-500">{student.fatherName}</td>
                       <td className="px-4 py-4 text-sm text-gray-500">{student.mobile}</td>
                       <td className="px-4 py-4">
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${isPresent ? 'bg-green-100 text-green-800' : status === 'Absent' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${isPresent ? 'bg-green-100 text-green-800' : status === 'Absent' ? 'bg-red-100 text-red-800' : status.startsWith('Leave') ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>
                           {status}
                         </span>
                       </td>
@@ -267,7 +273,7 @@ const AttendanceDirectory = ({ isParentView = false }) => {
                       <h4 className="font-bold text-gray-900">{student.name}</h4>
                       <p className="text-xs text-gray-500">Father: {student.fatherName}</p>
                     </div>
-                    <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-full ${isPresent ? 'bg-green-100 text-green-800' : status === 'Absent' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>
+                    <span className={`px-2 py-1 text-[10px] font-bold uppercase rounded-full ${isPresent ? 'bg-green-100 text-green-800' : status === 'Absent' ? 'bg-red-100 text-red-800' : status.startsWith('Leave') ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'}`}>
                       {status}
                     </span>
                   </div>

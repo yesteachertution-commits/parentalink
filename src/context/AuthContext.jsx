@@ -39,7 +39,17 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const logout = useCallback(() => {
+    const superadminToken = localStorage.getItem("superadmin_token");
+    if (superadminToken) {
+      localStorage.removeItem("superadmin_token");
+      localStorage.removeItem("refreshToken");
+      localStorage.setItem("token", superadminToken);
+      window.location.href = '/superadmin';
+      return;
+    }
+
     localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
     setUser(null);
     setToken(null);
   }, []);
@@ -80,9 +90,24 @@ export const AuthProvider = ({ children }) => {
         const decoded = decodeToken(storedToken);
 
         if (decoded.exp * 1000 < Date.now()) {
-          localStorage.removeItem("token");
-          setUser(null);
-          setToken(null);
+          const refreshToken = localStorage.getItem("refreshToken");
+          if (refreshToken) {
+            // We shouldn't block the UI rendering completely, so we do this async
+            fetch(`${import.meta.env.VITE_BACKEND_URL}/api/user/refresh`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ refreshToken })
+            }).then(res => res.json()).then(data => {
+              if (data.accessToken) {
+                login(data.accessToken);
+                if (data.refreshToken) localStorage.setItem("refreshToken", data.refreshToken);
+              } else {
+                logout();
+              }
+            }).catch(() => logout());
+          } else {
+            logout();
+          }
         } else {
           setToken(storedToken);
           setUser({

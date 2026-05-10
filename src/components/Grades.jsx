@@ -4,14 +4,17 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { FiCheckCircle, FiSave, FiTrash2, FiUsers, FiBook, FiSend, FiFilter, FiCalendar } from 'react-icons/fi';
 import { motion } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 
 const Grades = ({ readOnly = false }) => {
-  const { data } = useStudents({ limit: 1000 });
+  const { user } = useAuth();
+  const initialClass = user?.assignedClasses?.[0] || 'All Classes';
+  const [selectedClass, setSelectedClass] = useState(initialClass);
+  const { data } = useStudents({ limit: 200, classes: selectedClass });
   const { gradeMutation, deleteGradeMutation } = useStudentMutations();
   const { marksNotify } = useNotifications();
 
   const [localStudents, setLocalStudents] = useState([]);
-  const [selectedClass, setSelectedClass] = useState('All Classes');
   const [selectedSubject, setSelectedSubject] = useState('Math');
   const [gradeForm, setGradeForm] = useState({});
   const [totalMarks, setTotalMarks] = useState('100');

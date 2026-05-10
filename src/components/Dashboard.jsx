@@ -6,6 +6,7 @@ import AttendanceDirectory from './Attendance';
 import Grades from './Grades';
 import TeacherDirectory from './TeacherDirectory';
 import Analytics from './Analytics';
+import ParentOverview from './ParentOverview';
 import NotificationSystem from './NotificationSystem';
 import { useStudents } from '../hooks/useStudents';
 import { useAuth } from '../context/AuthContext';
@@ -18,6 +19,7 @@ import {
 
 // ── Tab configuration ────────────────────────────────────────────────────────
 const TAB_META = {
+    overview:      { label: 'Overview',   Icon: FiUser },
     analytics:     { label: 'Overview',   Icon: FiBarChart2 },
     attendance:    { label: 'Attendance', Icon: FiClock },
     grades:        { label: 'Grades',     Icon: FiBook },
@@ -72,15 +74,14 @@ const Dashboard = () => {
     const isAdmin     = user?.role === 'admin';
 
     const tabs = useMemo(() => {
-        if (isParent) return ['analytics', 'attendance', 'grades', 'notifications'];
+        if (isParent) return ['overview', 'attendance', 'grades', 'notifications'];
         if (isAdmin)  return ['analytics', 'students', 'teachers', 'attendance', 'grades', 'notifications'];
-        return ['analytics', 'attendance', 'grades', 'notifications'];
+        return ['attendance', 'grades', 'notifications'];
     }, [isParent, isAdmin]);
 
-    const [activeTab, setActiveTab]         = useState('analytics');
+    const [activeTab, setActiveTab] = useState(isParent ? 'overview' : (isAdmin ? 'analytics' : 'attendance'));
     const [showPushBanner, setShowPushBanner] = useState(false);
 
-    const { data: studentsData }  = useStudents({ limit: 1000 });
     const {
         permission, isSubscribed,
         isLoading: pushLoading, subscribe, isPushSupported
@@ -88,8 +89,8 @@ const Dashboard = () => {
     const { isInstallable, handleInstall } = usePWAInstall();
 
     useEffect(() => {
-        if (isParent && ['students', 'teachers'].includes(activeTab)) {
-            setActiveTab('analytics');
+        if (isParent && ['students', 'teachers', 'analytics'].includes(activeTab)) {
+            setActiveTab('overview');
         }
     }, [isParent]);
 
@@ -319,8 +320,11 @@ const Dashboard = () => {
                             initial="initial" animate="animate" exit="exit"
                             style={{ width: '100%' }}>
 
+                            {activeTab === 'overview' && (
+                                <ParentOverview />
+                            )}
                             {activeTab === 'analytics' && (
-                                <Analytics students={studentsData?.students || []} />
+                                <Analytics />
                             )}
                             {activeTab === 'students' && !isParent && <StudentDirectory />}
                             {activeTab === 'teachers' && isAdmin && <TeacherDirectory />}
