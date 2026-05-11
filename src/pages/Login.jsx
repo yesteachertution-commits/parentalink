@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 
 const Login = () => {
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
-  const { login } = useAuth();
+  const { login, user, isInitialized } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -28,6 +28,16 @@ const Login = () => {
     if (m === 'parent') setLoginMode('parent');
     if (m === 'school') setLoginMode('school');
   }, [searchParams]);
+
+  useEffect(() => {
+    if (isInitialized && user) {
+      if (user.role === 'superadmin') {
+        navigate('/superadmin', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [isInitialized, user, navigate]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
