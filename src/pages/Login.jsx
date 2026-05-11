@@ -53,7 +53,10 @@ const Login = () => {
           email: formData.email,
           password: formData.password,
         });
-        login(res.data.token);
+        if (res.data.refreshToken) {
+          localStorage.setItem('refreshToken', res.data.refreshToken);
+        }
+        login(res.data.token || res.data.accessToken);
         navigate('/dashboard');
         return;
       }
@@ -70,7 +73,10 @@ const Login = () => {
         password: formData.rollNo.trim(),
         schoolCode: formData.schoolCode.trim(),
       });
-      login(res.data.token);
+      if (res.data.refreshToken) {
+        localStorage.setItem('refreshToken', res.data.refreshToken);
+      }
+      login(res.data.token || res.data.accessToken);
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed.');

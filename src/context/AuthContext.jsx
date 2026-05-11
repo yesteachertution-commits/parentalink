@@ -92,8 +92,12 @@ export const AuthProvider = ({ children }) => {
         if (decoded.exp * 1000 < Date.now()) {
           const refreshToken = localStorage.getItem("refreshToken");
           if (refreshToken) {
+            const refreshUrl = decoded.role === 'parent' 
+                ? `${import.meta.env.VITE_BACKEND_URL}/api/parent/refresh` 
+                : `${import.meta.env.VITE_BACKEND_URL}/api/user/refresh`;
+
             // We shouldn't block the UI rendering completely, so we do this async
-            fetch(`${import.meta.env.VITE_BACKEND_URL}/api/user/refresh`, {
+            fetch(refreshUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ refreshToken })
