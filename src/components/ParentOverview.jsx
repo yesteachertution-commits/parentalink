@@ -3,7 +3,6 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { FiUser, FiCreditCard, FiCheckCircle, FiClock, FiAlertCircle, FiChevronDown, FiPlus, FiX, FiBell } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
-import { io } from 'socket.io-client';
 
 const ParentOverview = () => {
     const { token } = useAuth();
@@ -50,21 +49,18 @@ const ParentOverview = () => {
         }
     }, [student]);
 
-    // WebSocket Connection
+    // SERVERLESS REAL-TIME SYNCHRONIZATION
+    // Architectural Shift: Vercel Serverless does not support persistent WebSockets (Socket.io).
+    // To achieve real-time updates (like attendance), we implement an aggressive Stale-While-Revalidate (SWR) HTTP polling cycle.
     useEffect(() => {
         if (!student) return;
-        const socket = io(import.meta.env.VITE_BACKEND_URL);
         
-        socket.emit('joinRoom', student._id);
-        
-        socket.on('attendanceUpdate', (data) => {
-            fetchChild();
-            fetchFeed(student._id); // Refresh feed
-        });
+        const syncInterval = setInterval(() => {
+            fetchChild(); // Sync attendance/grades
+            fetchFeed(student._id); // Sync notifications feed
+        }, 15000); // 15-second heartbeat
 
-        return () => {
-            socket.disconnect();
-        };
+        return () => clearInterval(syncInterval);
     }, [student?._id]);
 
     const handleSwitchChild = (id) => {
