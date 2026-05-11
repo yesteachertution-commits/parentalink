@@ -6,6 +6,7 @@ import React, {
   useCallback
 } from "react";
 import { jwtDecode } from "jwt-decode";
+import axios from "axios";
 
 const AuthContext = createContext();
 
@@ -73,15 +74,25 @@ export const AuthProvider = ({ children }) => {
   }, [decodeToken, logout]);
 
   useEffect(() => {
-    if (isInitialized) return;
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        // If server says token is invalid/expired, automatically log out
+        // Do not intercept /login endpoints to allow normal error messages
+        if (
+          (error.response?.status === 401 || error.response?.status === 403) && 
+          !error.config.url.includes('/login')
+        ) {
+          logout();
+        }
+        return Promise.reject(error);
+      }
+    );
+    return () => axios.interceptors.response.eject(interceptor);
+  }, [logout]);
 
-    try {
-      localStorage.setItem("authTest", "test");
-      localStorage.removeItem("authTest");
-    } catch {
-      setIsInitialized(true);
-      return;
-    }
+  useEffect(() => {
+    if (isInitialized) return;
 
     const storedToken = localStorage.getItem("token");
 
@@ -96,19 +107,21 @@ export const AuthProvider = ({ children }) => {
                 ? `${import.meta.env.VITE_BACKEND_URL}/api/parent/refresh` 
                 : `${import.meta.env.VITE_BACKEND_URL}/api/user/refresh`;
 
-            // We shouldn't block the UI rendering completely, so we do this async
             fetch(refreshUrl, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ refreshToken })
             }).then(res => res.json()).then(data => {
-              if (data.accessToken) {
-                login(data.accessToken);
+              if (data.accessToken || data.token) {
+                login(data.accessToken || data.token);
                 if (data.refreshToken) localStorage.setItem("refreshToken", data.refreshToken);
               } else {
                 logout();
               }
-            }).catch(() => logout());
+            }).catch(() => logout())
+              .finally(() => setIsInitialized(true)); // Wait for refresh to finish before allowing routing
+
+            return; // Exit early to prevent synchronous isInitialized(true) below
           } else {
             logout();
           }
