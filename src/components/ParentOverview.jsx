@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { FiUser, FiCreditCard, FiCheckCircle, FiClock, FiAlertCircle, FiChevronDown, FiPlus, FiX } from 'react-icons/fi';
+import { FiUser, FiCreditCard, FiCheckCircle, FiClock, FiAlertCircle, FiChevronDown, FiPlus, FiX, FiBell } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import { io } from 'socket.io-client';
 
@@ -13,6 +13,7 @@ const ParentOverview = () => {
     const [showLeaveModal, setShowLeaveModal] = useState(false);
     const [leaveData, setLeaveData] = useState({ date: new Date().toISOString().split('T')[0], reason: '' });
     const [submittingLeave, setSubmittingLeave] = useState(false);
+    const [feedItems, setFeedItems] = useState([]);
 
     const fetchChild = async () => {
         try {
@@ -28,9 +29,26 @@ const ParentOverview = () => {
         }
     };
 
+    const fetchFeed = async (studentId) => {
+        try {
+            const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/parent/feed/${studentId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            setFeedItems(res.data);
+        } catch (err) {
+            console.error("Failed to load feed", err);
+        }
+    };
+
     useEffect(() => {
         fetchChild();
     }, [token]);
+
+    useEffect(() => {
+        if (student) {
+            fetchFeed(student._id);
+        }
+    }, [student]);
 
     // WebSocket Connection
     useEffect(() => {
@@ -40,7 +58,8 @@ const ParentOverview = () => {
         socket.emit('joinRoom', student._id);
         
         socket.on('attendanceUpdate', (data) => {
-            fetchChild(); // Silently refresh the feed
+            fetchChild();
+            fetchFeed(student._id); // Refresh feed
         });
 
         return () => {
@@ -63,36 +82,14 @@ const ParentOverview = () => {
             }, { headers: { Authorization: `Bearer ${token}` } });
             alert('Leave applied successfully');
             setShowLeaveModal(false);
-            fetchChild(); // refresh data
+            fetchChild();
+            fetchFeed(student._id);
         } catch (err) {
             alert(err.response?.data?.message || 'Failed to apply leave');
         } finally {
             setSubmittingLeave(false);
         }
     };
-
-    // Generate Feed Data
-    const feedItems = useMemo(() => {
-        if (!student) return [];
-        let items = [];
-        
-        // 1. Attendance
-        if (student.attendance) {
-            Object.entries(student.attendance).forEach(([date, status]) => {
-                items.push({ date, type: 'attendance', title: `Attendance: ${status}`, status });
-            });
-        }
-        
-        // 2. Leaves
-        if (student.leaveRequests) {
-            student.leaveRequests.forEach(req => {
-                items.push({ date: req.date, type: 'leave', title: `Leave Request (${req.status})`, desc: req.reason });
-            });
-        }
-        
-        // Sort by date descending
-        return items.sort((a, b) => new Date(b.date) - new Date(a.date));
-    }, [student]);
 
     if (loading) return (
         <div className="flex items-center justify-center h-64">
@@ -192,31 +189,46 @@ const ParentOverview = () => {
                 </div>
             </div>
 
-            {/* Daily Digest Feed */}
+            {/* Today's Highlights Feed */}
             <div>
-                <h3 className="text-lg font-bold text-gray-800 mb-4 px-1">Daily Digest Feed</h3>
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-1">
+                <h3 className="text-lg font-bold text-gray-800 mb-4 px-1">Today's Highlights</h3>
+                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                     {feedItems.length === 0 ? (
-                        <p className="text-center text-gray-500 p-8 text-sm">No recent activity.</p>
+                        <div className="p-10 flex flex-col items-center justify-center text-gray-400">
+                            <FiBell size={40} className="mb-3 text-gray-200" />
+                            <p className="text-sm font-medium">No new updates today.</p>
+                        </div>
                     ) : (
                         <div className="divide-y divide-gray-50">
-                            {feedItems.map((item, idx) => (
-                                <div key={idx} className="p-4 flex gap-4 items-start hover:bg-gray-50/50 transition">
-                                    <div className="flex flex-col items-center mt-1">
-                                        <div className={`w-2.5 h-2.5 rounded-full ${item.type === 'attendance' ? (item.status === 'Present' ? 'bg-green-500' : 'bg-red-500') : 'bg-indigo-500'}`} />
-                                        {idx !== feedItems.length - 1 && <div className="w-0.5 h-full bg-gray-100 mt-2 min-h-[30px]" />}
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
-                                            {new Date(item.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                                        </p>
-                                        <p className={`text-sm font-bold ${item.type === 'attendance' ? (item.status === 'Present' ? 'text-green-700' : 'text-red-600') : 'text-indigo-700'}`}>
-                                            {item.title}
-                                        </p>
-                                        {item.desc && <p className="text-sm text-gray-600 mt-1">{item.desc}</p>}
-                                    </div>
-                                </div>
-                            ))}
+                            {feedItems.map((item, idx) => {
+                                // Determine styling based on notification type
+                                let iconBg = 'bg-blue-100 text-blue-600';
+                                if (item.type === 'attendance') iconBg = item.title.includes('Present') ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600';
+                                if (item.type === 'grades') iconBg = 'bg-purple-100 text-purple-600';
+                                if (item.type === 'fee') iconBg = 'bg-yellow-100 text-yellow-600';
+                                if (item.type === 'leave') iconBg = 'bg-indigo-100 text-indigo-600';
+
+                                return (
+                                    <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }} key={idx} className="p-5 flex gap-4 items-start hover:bg-gray-50 transition cursor-pointer">
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${iconBg}`}>
+                                            {item.type === 'attendance' ? <FiCheckCircle size={20} /> :
+                                             item.type === 'fee' ? <FiCreditCard size={20} /> :
+                                             item.type === 'leave' ? <FiAlertCircle size={20} /> :
+                                             <FiBell size={20} />}
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <span className="text-xs font-bold uppercase tracking-wider text-gray-400">{item.type}</span>
+                                                <span className="text-[10px] text-gray-400 font-medium bg-gray-100 px-2 py-0.5 rounded-full">
+                                                    {new Date(item.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                                </span>
+                                            </div>
+                                            <h4 className="text-base font-bold text-gray-800 mb-0.5">{item.title}</h4>
+                                            <p className="text-sm text-gray-600 leading-relaxed">{item.message}</p>
+                                        </div>
+                                    </motion.div>
+                                );
+                            })}
                         </div>
                     )}
                 </div>
