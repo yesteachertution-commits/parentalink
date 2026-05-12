@@ -21,22 +21,49 @@ export const usePushNotifications = (isParent = false) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Register Service Worker on mount
+  // Register Service Worker and Auto-Sync on mount
   useEffect(() => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+
+    const syncSubscription = async (reg) => {
+      try {
+        let sub = await reg.pushManager.getSubscription();
+        
+        // If permission is already granted but no subscription exists locally, silently subscribe
+        if (!sub && Notification.permission === 'granted' && isParent) {
+          const { data } = await axios.get(`${backendUrl}/api/push/vapid-public-key`);
+          const applicationServerKey = urlBase64ToUint8Array(data.publicKey);
+          sub = await reg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey,
+          });
+        }
+
+        // If we have a subscription, ALWAYS sync it to the backend on boot to ensure DB hygiene
+        if (sub && isParent) {
+          const token = localStorage.getItem('token');
+          if (token) {
+            await axios.post(
+              `${backendUrl}/api/push/subscribe`,
+              { subscription: sub.toJSON() },
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            setIsSubscribed(true);
+          }
+        }
+      } catch (err) {
+        console.error('[PWA] Background sync failed:', err);
+      }
+    };
 
     navigator.serviceWorker
       .register('/sw.js')
       .then((reg) => {
         console.log('[PWA] Service Worker registered:', reg.scope);
-        // Check if already subscribed
-        return reg.pushManager.getSubscription();
-      })
-      .then((sub) => {
-        if (sub) setIsSubscribed(true);
+        syncSubscription(reg);
       })
       .catch((err) => console.error('[PWA] SW registration failed:', err));
-  }, []);
+  }, [isParent]);
 
   const subscribe = useCallback(async () => {
     if (!isParent) return; // Only parents subscribe
