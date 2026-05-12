@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const ParentOverview = () => {
     const { token } = useAuth();
-    const { channel } = usePusher();
+    const { channel, pusher } = usePusher();
     const [student, setStudent] = useState(null);
     const [siblings, setSiblings] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -53,7 +53,6 @@ const ParentOverview = () => {
 
     // SERVERLESS REAL-TIME SYNCHRONIZATION (PUSHER)
     useEffect(() => {
-        const { pusher } = usePusher(); // We need the main instance to bind to the tenant channel
         if (!channel || !student || !pusher) return;
         
         const handleRealTimeUpdate = (data) => {
