@@ -1,82 +1,117 @@
-// Service Worker for Parentalink PWA
-// Handles: push notifications, offline caching, install prompt
+// Phase 2: Native-Grade Background Service Worker
+// Automatically claims control and runs independently of the React lifecycle
 
-const CACHE_NAME = 'parentalink-v1';
-const STATIC_ASSETS = ['/', '/index.html'];
-
-// ── Install: cache static shell ──────────────────────────────────────────────
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(STATIC_ASSETS))
-  );
-  self.skipWaiting();
+    // Force the waiting service worker to become the active service worker immediately.
+    self.skipWaiting();
 });
 
-// ── Activate: clean old caches ───────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
-    )
-  );
-  self.clients.claim();
+    // Tell the active service worker to take control of the page immediately.
+    event.waitUntil(self.clients.claim());
 });
 
-// ── Fetch: network-first for API, cache-first for assets ────────────────────
-self.addEventListener('fetch', (event) => {
-  if (event.request.url.includes('/api/')) {
-    // API calls: always go to network
-    return;
-  }
-  event.respondWith(
-    caches.match(event.request).then((cached) => cached || fetch(event.request))
-  );
-});
-
-// ── Push: receive notification from backend ──────────────────────────────────
+// ---------------------------------------------------------
+// THE CORE PUSH LISTENER
+// This runs in the background even if the app is killed from recent apps.
+// ---------------------------------------------------------
 self.addEventListener('push', (event) => {
-  let data = {};
-  try {
-    data = event.data ? event.data.json() : {};
-  } catch {
-    data = { title: 'Parentalink', body: event.data ? event.data.text() : 'New update' };
-  }
+    if (!event.data) {
+        console.warn('[ServiceWorker] Push event received, but no payload was attached.');
+        return;
+    }
 
-  const title = data.title || 'Parentalink';
-  const options = {
-    body: data.body || 'You have a new update.',
-    icon: data.icon || '/icons/icon-192.png',
-    badge: data.badge || '/icons/icon-192.png',
-    tag: data.tag || 'parentalink-notification',
-    data: data.data || {},
-    vibrate: [200, 100, 200],
-    requireInteraction: false,
-    actions: [
-      { action: 'view', title: 'View Dashboard' },
-      { action: 'dismiss', title: 'Dismiss' }
-    ]
-  };
+    let payload = {};
+    try {
+        payload = event.data.json();
+    } catch (e) {
+        payload = { title: 'ParentaLink Update', body: event.data.text() };
+    }
 
-  event.waitUntil(self.registration.showNotification(title, options));
+    const title = payload.title || 'ParentaLink';
+    
+    const options = {
+        body: payload.body || 'You have a new update from the school.',
+        icon: payload.icon || '/vite.svg', // Fallback icon
+        badge: payload.badge || '/vite.svg', // Small status bar icon
+        vibrate: payload.vibrate || [200, 100, 200, 100, 200], // Distinctive native vibration pattern
+        tag: payload.tag || 'parentalink-notification',
+        data: payload.data || { url: '/dashboard' },
+        requireInteraction: true // NATIVE FEATURE: Keeps the notification on the lock screen until the parent explicitly swipes it away
+    };
+
+    // CRITICAL ARCHITECTURE: 
+    // MUST use event.waitUntil to prevent the mobile OS from killing the background thread prematurely
+    event.waitUntil(
+        self.registration.showNotification(title, options)
+    );
 });
 
-// ── Notification click: open app when parent taps notification ───────────────
+// ---------------------------------------------------------
+// NOTIFICATION CLICK HANDLER
+// Brings the PWA to the foreground natively
+// ---------------------------------------------------------
 self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
+    event.notification.close(); // Instantly close the notification tray
 
-  if (event.action === 'dismiss') return;
+    const urlToOpen = new URL(event.notification.data?.url || '/dashboard', self.location.origin).href;
 
-  // Open or focus the app
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // If app already open, focus it
-      for (const client of clientList) {
-        if (client.url.includes(self.location.origin) && 'focus' in client) {
-          return client.focus();
-        }
-      }
-      // Otherwise open a new window
-      return clients.openWindow('/dashboard');
-    })
-  );
+    event.waitUntil(
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+            let matchingClient = null;
+            
+            // Check if the PWA is already open in the background
+            for (let i = 0; i < windowClients.length; i++) {
+                const windowClient = windowClients[i];
+                if (windowClient.url === urlToOpen) {
+                    matchingClient = windowClient;
+                    break;
+                }
+            }
+
+            // If it is open, smoothly bring it to the foreground natively. 
+            // If it is completely dead, launch a fresh instance of the app.
+            if (matchingClient) {
+                return matchingClient.focus();
+            } else {
+                return self.clients.openWindow(urlToOpen);
+            }
+        })
+    );
+});
+
+// ---------------------------------------------------------
+// PWA OFFLINE ASSET CACHING (SWR STRATEGY)
+// Ensures the app shell loads perfectly even without WiFi
+// ---------------------------------------------------------
+const CACHE_NAME = 'parentalink-cache-v1';
+
+self.addEventListener('fetch', (event) => {
+    // Only intercept basic GET requests (exclude API calls if needed, though SWR handles it okay)
+    if (event.request.method !== 'GET') return;
+    
+    // Skip cross-origin requests unless strictly necessary
+    if (!event.request.url.startsWith(self.location.origin) && !event.request.url.includes('fonts.googleapis.com')) {
+        return;
+    }
+
+    event.respondWith(
+        caches.match(event.request).then((cachedResponse) => {
+            // Stale-While-Revalidate: Return cached immediately, but fetch fresh in background
+            const fetchPromise = fetch(event.request).then((networkResponse) => {
+                if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+                    const responseToCache = networkResponse.clone();
+                    caches.open(CACHE_NAME).then((cache) => {
+                        cache.put(event.request, responseToCache);
+                    });
+                }
+                return networkResponse;
+            }).catch(() => {
+                // Network failed entirely. Safe to swallow because we return cachedResponse below.
+            });
+
+            // Return cached data instantly if we have it, otherwise wait for network
+            return cachedResponse || fetchPromise;
+        })
+    );
 });

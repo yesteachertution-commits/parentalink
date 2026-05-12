@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { usePusher } from '../context/PusherProvider';
 import { FiUser, FiCreditCard, FiCheckCircle, FiClock, FiAlertCircle, FiChevronDown, FiPlus, FiX, FiBell } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const ParentOverview = () => {
     const { token } = useAuth();
+    const { channel } = usePusher();
     const [student, setStudent] = useState(null);
     const [siblings, setSiblings] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -49,19 +51,26 @@ const ParentOverview = () => {
         }
     }, [student]);
 
-    // SERVERLESS REAL-TIME SYNCHRONIZATION
-    // Architectural Shift: Vercel Serverless does not support persistent WebSockets (Socket.io).
-    // To achieve real-time updates (like attendance), we implement an aggressive Stale-While-Revalidate (SWR) HTTP polling cycle.
+    // SERVERLESS REAL-TIME SYNCHRONIZATION (PUSHER)
+    // Listens for instant WebSocket events pushed by the Vercel backend via Pusher.
     useEffect(() => {
-        if (!student) return;
+        if (!channel || !student) return;
         
-        const syncInterval = setInterval(() => {
-            fetchChild(); // Sync attendance/grades
-            fetchFeed(student._id); // Sync notifications feed
-        }, 15000); // 15-second heartbeat
+        const handleRealTimeUpdate = (data) => {
+            console.log('[Pusher] Received Real-Time Update:', data);
+            fetchChild(); // Refreshes attendance and grades instantly
+            fetchFeed(student._id); // Refreshes the feed instantly
+        };
 
-        return () => clearInterval(syncInterval);
-    }, [student?._id]);
+        // Bind to events emitted by backend controllers
+        channel.bind('attendanceUpdate', handleRealTimeUpdate);
+        channel.bind('gradeUpdate', handleRealTimeUpdate);
+        
+        return () => {
+            channel.unbind('attendanceUpdate', handleRealTimeUpdate);
+            channel.unbind('gradeUpdate', handleRealTimeUpdate);
+        };
+    }, [channel, student?._id]);
 
     const handleSwitchChild = (id) => {
         const selected = siblings.find(s => s._id === id);
@@ -190,10 +199,13 @@ const ParentOverview = () => {
                 <h3 className="text-lg font-bold text-gray-800 mb-4 px-1">Today's Highlights</h3>
                 <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
                     {feedItems.length === 0 ? (
-                        <div className="p-10 flex flex-col items-center justify-center text-gray-400">
-                            <FiBell size={40} className="mb-3 text-gray-200" />
-                            <p className="text-sm font-medium">No new updates today.</p>
-                        </div>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-16 px-6 flex flex-col items-center justify-center text-center">
+                            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4 border border-gray-100 shadow-inner">
+                                <span className="text-3xl">🎉</span>
+                            </div>
+                            <h4 className="text-lg font-bold text-gray-800 mb-1">No activity today!</h4>
+                            <p className="text-sm text-gray-500 max-w-[200px]">You're all caught up. Check back later for attendance and updates.</p>
+                        </motion.div>
                     ) : (
                         <div className="divide-y divide-gray-50">
                             {feedItems.map((item, idx) => {

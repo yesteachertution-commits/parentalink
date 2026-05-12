@@ -113,36 +113,59 @@ export const AuthProvider = ({ children }) => {
     return () => axios.interceptors.response.eject(interceptor);
   }, [logout, decodeToken]);
 
-  // BOOT INITIALIZATION
+  // BOOT INITIALIZATION (REHYDRATION)
   useEffect(() => {
     if (isInitialized) return;
 
-    const storedToken = localStorage.getItem("token");
+    const initializeAuth = async () => {
+      const storedToken = localStorage.getItem("token");
+      const refreshToken = localStorage.getItem("refreshToken");
 
-    if (storedToken) {
-       // HYPOTHESIS VALIDATED: We no longer check "exp" time locally because local clocks drift.
-       // We blindly trust the token and load the UI immediately. 
-       // If it is expired, the very first API call the UI makes will fail with 401, 
-       // trigger the Axios Interceptor above, fetch a new token silently, and succeed.
-       // This completely eliminates the "Instant Logout on Reopen" lifecycle bug.
-       try {
-          const decoded = decodeToken(storedToken);
-          setToken(storedToken);
-          setUser({
-            id: decoded.id ?? decoded.sub ?? decoded.userId,
-            name: decoded.name || decoded.studentName || "User",
-            email: decoded.email ?? null,
-            role: decoded.role || "admin",
-            studentId: decoded.studentId ?? null,
-            schoolCode: decoded.schoolCode ?? null,
-          });
-       } catch {
-          logout();
-       }
-    }
-    
-    setIsInitialized(true);
-  }, [decodeToken, isInitialized, logout]);
+      if (!storedToken && !refreshToken) {
+        setIsInitialized(true);
+        return;
+      }
+
+      // Phase 3 Architecture: Always attempt to securely rehydrate the session on cold boot
+      if (refreshToken && navigator.onLine) {
+        try {
+          let role = 'admin';
+          if (storedToken) {
+            try { role = decodeToken(storedToken).role; } catch (e) {}
+          }
+          
+          const refreshUrl = role === 'parent' 
+              ? `${import.meta.env.VITE_BACKEND_URL}/api/parent/refresh` 
+              : `${import.meta.env.VITE_BACKEND_URL}/api/user/refresh`;
+          
+          // Silently hit the backend to get a 100% fresh, verified token
+          const res = await axios.post(refreshUrl, { refreshToken });
+          const newToken = res.data.accessToken || res.data.token;
+          
+          if (newToken) {
+            login(newToken);
+          } else {
+            logout(); // Empty token returned
+          }
+        } catch (error) {
+          // If the backend actively rejected the refresh token (401/403), the session is dead.
+          if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            logout();
+          } else if (storedToken) {
+            // It was a network failure (server unreachable), fallback to offline mode
+            login(storedToken);
+          }
+        }
+      } else if (storedToken) {
+        // App is offline, trust the local token optimistically
+        login(storedToken);
+      }
+
+      setIsInitialized(true);
+    };
+
+    initializeAuth();
+  }, [decodeToken, isInitialized, logout, login]);
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout, isInitialized }}>

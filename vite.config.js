@@ -37,6 +37,18 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
-    emptyOutDir: true
+    emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) return 'vendor-react';
+            if (id.includes('framer-motion')) return 'vendor-framer';
+            if (id.includes('pusher-js')) return 'vendor-pusher';
+            return 'vendor-core';
+          }
+        }
+      }
+    }
   },
 })
