@@ -52,9 +52,9 @@ const ParentOverview = () => {
     }, [student]);
 
     // SERVERLESS REAL-TIME SYNCHRONIZATION (PUSHER)
-    // Listens for instant WebSocket events pushed by the Vercel backend via Pusher.
     useEffect(() => {
-        if (!channel || !student) return;
+        const { pusher } = usePusher(); // We need the main instance to bind to the tenant channel
+        if (!channel || !student || !pusher) return;
         
         const handleRealTimeUpdate = (data) => {
             console.log('[Pusher] Received Real-Time Update:', data);
@@ -62,15 +62,24 @@ const ParentOverview = () => {
             fetchFeed(student._id); // Refreshes the feed instantly
         };
 
-        // Bind to events emitted by backend controllers
+        // Bind to student-specific events
         channel.bind('attendanceUpdate', handleRealTimeUpdate);
         channel.bind('gradeUpdate', handleRealTimeUpdate);
+        channel.bind('newAlert', handleRealTimeUpdate);
+
+        // Bind to school-wide events
+        const tenantChannel = pusher.channel(`tenant-${student.tenantId}`);
+        if (tenantChannel) {
+            tenantChannel.bind('newAlert', handleRealTimeUpdate);
+        }
         
         return () => {
             channel.unbind('attendanceUpdate', handleRealTimeUpdate);
             channel.unbind('gradeUpdate', handleRealTimeUpdate);
+            channel.unbind('newAlert', handleRealTimeUpdate);
+            if (tenantChannel) tenantChannel.unbind('newAlert', handleRealTimeUpdate);
         };
-    }, [channel, student?._id]);
+    }, [channel, student]);
 
     const handleSwitchChild = (id) => {
         const selected = siblings.find(s => s._id === id);

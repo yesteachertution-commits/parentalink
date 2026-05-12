@@ -32,17 +32,25 @@ export const PusherProvider = ({ children }) => {
             encrypted: true, // Secure WebSocket connection
         });
 
-        // 2. Subscribe to the uniquely unguessable channel (MongoDB ObjectID acts as secure token)
+        // 2. Subscribe to the student-specific channel
         const channelName = `student-${user.studentId}`;
         const subscribedChannel = pusher.subscribe(channelName);
 
+        // 3. Subscribe to the school-wide tenant channel for global alerts
+        const tenantChannelName = `tenant-${user.tenantId}`;
+        const subscribedTenantChannel = pusher.subscribe(tenantChannelName);
+
         setPusherInstance(pusher);
         setChannel(subscribedChannel);
+        // We can expose the tenant channel if needed, or just let components bind to the same instance.
+        // For simplicity, we'll attach the tenant channel to the context as well.
 
-        // 3. Clean up on dismount/logout
+        // 4. Clean up on dismount/logout
         return () => {
             subscribedChannel.unbind_all();
+            subscribedTenantChannel.unbind_all();
             pusher.unsubscribe(channelName);
+            pusher.unsubscribe(tenantChannelName);
             pusher.disconnect();
         };
     }, [user]); // Re-run if user changes (e.g., login/logout)
