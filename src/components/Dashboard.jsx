@@ -53,11 +53,14 @@ const Dashboard = () => {
     }, [isParent]);
 
     useEffect(() => {
-        if (isParent && isPushSupported && permission === 'default' && !isSubscribed) {
-            const t = setTimeout(() => setShowPushBanner(true), 1500);
-            return () => clearTimeout(t);
+        if (isParent && isPushSupported && !isSubscribed) {
+            if (permission === 'default') {
+                const t = setTimeout(() => setShowPushBanner(true), 1500);
+                return () => clearTimeout(t);
+            }
         }
-        if (permission === 'granted' || isSubscribed) setShowPushBanner(false);
+        // Only hide if truly subscribed
+        if (isSubscribed) setShowPushBanner(false);
     }, [isParent, isPushSupported, permission, isSubscribed]);
 
     return (
