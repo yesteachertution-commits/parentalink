@@ -142,8 +142,10 @@ export const PusherProvider = ({ children }) => {
             return;
         }
 
-        // Always enable logging to verify events in browser console
-        Pusher.logToConsole = true;
+        // Enable Pusher logging only in development
+        if (import.meta.env.DEV) {
+            Pusher.logToConsole = true;
+        }
 
         const pusher = new Pusher(pusherKey, {
             cluster: pusherCluster,
