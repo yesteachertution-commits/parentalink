@@ -32,12 +32,11 @@ self.addEventListener('push', (event) => {
     
     const options = {
         body: payload.body || 'You have a new update from the school.',
-        icon: payload.icon || '/vite.svg', // Fallback icon
-        badge: payload.badge || '/vite.svg', // Small status bar icon
-        vibrate: payload.vibrate || [200, 100, 200, 100, 200], // Distinctive native vibration pattern
+        icon: payload.icon || '/vite.svg',
+        badge: payload.badge || '/vite.svg',
+        vibrate: [200, 100, 200], // Simplified pattern
         tag: payload.tag || 'parentalink-notification',
-        data: payload.data || { url: '/dashboard' },
-        requireInteraction: true // NATIVE FEATURE: Keeps the notification on the lock screen until the parent explicitly swipes it away
+        data: payload.data || { url: '/dashboard' }
     };
 
     // CRITICAL ARCHITECTURE: 
