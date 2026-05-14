@@ -32,11 +32,13 @@ self.addEventListener('push', (event) => {
     
     const options = {
         body: payload.body || 'You have a new update from the school.',
-        icon: payload.icon || '/vite.svg',
-        badge: payload.badge || '/vite.svg',
-        vibrate: [200, 100, 200], // Simplified pattern
+        icon: '/vite.svg', // Forced lightweight icon to prevent Android SW timeout on locked screen
+        badge: '/vite.svg',
+        vibrate: [200, 100, 200, 100, 200], // More aggressive vibration pattern
         tag: payload.tag || 'parentalink-notification',
-        data: payload.data || { url: '/dashboard' }
+        data: payload.data || { url: '/dashboard' },
+        requireInteraction: true, // Forces notification to stay until user interacts
+        renotify: true // Ensures device alerts again even if tag is the same
     };
 
     // CRITICAL ARCHITECTURE: 
