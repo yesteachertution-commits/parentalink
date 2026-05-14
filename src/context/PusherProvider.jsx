@@ -116,6 +116,7 @@ export const PusherProvider = ({ children }) => {
     const { user } = useAuth();
     const [pusherInstance, setPusherInstance] = useState(null);
     const [channel, setChannel] = useState(null);
+    const [tenantChannel, setTenantChannel] = useState(null);
     const [inAppNotifications, setInAppNotifications] = useState([]);
 
     const showInAppNotification = useCallback((title, body, icon) => {
@@ -132,7 +133,7 @@ export const PusherProvider = ({ children }) => {
     }, []);
 
     useEffect(() => {
-        if (!user || user.role !== 'parent' || !user.studentId) return;
+        if (!user) return;
 
         const pusherKey = import.meta.env.VITE_PUSHER_KEY;
         const pusherCluster = import.meta.env.VITE_PUSHER_CLUSTER;
@@ -152,20 +153,16 @@ export const PusherProvider = ({ children }) => {
             encrypted: true,
         });
 
-        const channelName = `student-${user.studentId}`;
         const tenantChannelName = `tenant-${user.tenantId}`;
-
-        // AUDIT LOG: Verify channel names are not undefined
-        console.log('[Pusher] Subscribing to channel:', channelName);
         console.log('[Pusher] Subscribing to tenant channel:', tenantChannelName);
-
-        if (channelName === 'student-null' || channelName === 'student-undefined') {
-            console.error('[Pusher] CRITICAL: studentId is missing from user object. Aborting subscription.');
-            return;
-        }
-
-        const subscribedChannel = pusher.subscribe(channelName);
         const subscribedTenantChannel = pusher.subscribe(tenantChannelName);
+
+        let subscribedChannel = null;
+        if (user.role === 'parent' && user.studentId) {
+            const channelName = `student-${user.studentId}`;
+            console.log('[Pusher] Subscribing to channel:', channelName);
+            subscribedChannel = pusher.subscribe(channelName);
+        }
 
         // ── Global event handler that fires in-app banners ──────────────────
         const handlePusherEvent = (eventName, data) => {
@@ -193,28 +190,33 @@ export const PusherProvider = ({ children }) => {
             }
         };
 
-        // Bind student-specific events
-        subscribedChannel.bind('attendanceUpdate', (d) => handlePusherEvent('attendanceUpdate', d));
-        subscribedChannel.bind('gradeUpdate', (d) => handlePusherEvent('gradeUpdate', d));
-        subscribedChannel.bind('newAlert', (d) => handlePusherEvent('newAlert', d));
+        // Bind student-specific events if parent
+        if (subscribedChannel) {
+            subscribedChannel.bind('attendanceUpdate', (d) => handlePusherEvent('attendanceUpdate', d));
+            subscribedChannel.bind('gradeUpdate', (d) => handlePusherEvent('gradeUpdate', d));
+            subscribedChannel.bind('newAlert', (d) => handlePusherEvent('newAlert', d));
+        }
 
         // Bind school-wide events
         subscribedTenantChannel.bind('newAlert', (d) => handlePusherEvent('newAlert', d));
 
         setPusherInstance(pusher);
         setChannel(subscribedChannel);
+        setTenantChannel(subscribedTenantChannel);
 
         return () => {
-            subscribedChannel.unbind_all();
+            if (subscribedChannel) {
+                subscribedChannel.unbind_all();
+                pusher.unsubscribe(`student-${user.studentId}`);
+            }
             subscribedTenantChannel.unbind_all();
-            pusher.unsubscribe(channelName);
             pusher.unsubscribe(tenantChannelName);
             pusher.disconnect();
         };
     }, [user, showInAppNotification]);
 
     return (
-        <PusherContext.Provider value={{ pusher: pusherInstance, channel }}>
+        <PusherContext.Provider value={{ pusher: pusherInstance, channel, tenantChannel }}>
             {children}
             {/* In-App Notification Banner — renders over everything */}
             <NotificationToast

@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const ParentOverview = () => {
     const { token } = useAuth();
-    const { channel, pusher } = usePusher();
+    const { channel, tenantChannel, pusher } = usePusher();
     const [student, setStudent] = useState(null);
     const [siblings, setSiblings] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -53,7 +53,7 @@ const ParentOverview = () => {
 
     // SERVERLESS REAL-TIME SYNCHRONIZATION (PUSHER)
     useEffect(() => {
-        if (!channel || !student || !pusher) return;
+        if (!student || !pusher) return;
         
         const handleRealTimeUpdate = (data) => {
             console.log('[Pusher] Received Real-Time Update:', data);
@@ -62,23 +62,26 @@ const ParentOverview = () => {
         };
 
         // Bind to student-specific events
-        channel.bind('attendanceUpdate', handleRealTimeUpdate);
-        channel.bind('gradeUpdate', handleRealTimeUpdate);
-        channel.bind('newAlert', handleRealTimeUpdate);
+        if (channel) {
+            channel.bind('attendanceUpdate', handleRealTimeUpdate);
+            channel.bind('gradeUpdate', handleRealTimeUpdate);
+            channel.bind('newAlert', handleRealTimeUpdate);
+        }
 
         // Bind to school-wide events
-        const tenantChannel = pusher.channel(`tenant-${student.tenantId}`);
         if (tenantChannel) {
             tenantChannel.bind('newAlert', handleRealTimeUpdate);
         }
         
         return () => {
-            channel.unbind('attendanceUpdate', handleRealTimeUpdate);
-            channel.unbind('gradeUpdate', handleRealTimeUpdate);
-            channel.unbind('newAlert', handleRealTimeUpdate);
+            if (channel) {
+                channel.unbind('attendanceUpdate', handleRealTimeUpdate);
+                channel.unbind('gradeUpdate', handleRealTimeUpdate);
+                channel.unbind('newAlert', handleRealTimeUpdate);
+            }
             if (tenantChannel) tenantChannel.unbind('newAlert', handleRealTimeUpdate);
         };
-    }, [channel, student]);
+    }, [channel, tenantChannel, student, pusher]);
 
     const handleSwitchChild = (id) => {
         const selected = siblings.find(s => s._id === id);
