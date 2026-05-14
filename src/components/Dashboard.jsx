@@ -4,210 +4,203 @@ import ProfileDropdown from './ProfileDropdown';
 import StudentDirectory from './StudentDirectory';
 import AttendanceDirectory from './Attendance';
 import Grades from './Grades';
+import TeacherDirectory from './TeacherDirectory';
+import Analytics from './Analytics';
+import ParentOverview from './ParentOverview';
+import NotificationSystem from './NotificationSystem';
 import { useAuth } from '../context/AuthContext';
+import { usePushNotifications } from '../hooks/usePushNotifications';
+import { usePWAInstall } from '../hooks/usePWAInstall';
+import {
+    FiDownload, FiBell, FiBarChart2, FiClock,
+    FiBook, FiUsers, FiUser, FiMenu
+} from 'react-icons/fi';
 
-
+const TAB_META = {
+    overview:      { label: 'Overview',   Icon: FiBarChart2 },
+    analytics:     { label: 'Analytics',  Icon: FiBarChart2 },
+    attendance:    { label: 'Attendance', Icon: FiClock },
+    grades:        { label: 'Grades',     Icon: FiBook },
+    notifications: { label: 'Alerts',     Icon: FiBell },
+    students:      { label: 'Students',   Icon: FiUsers },
+    teachers:      { label: 'Teachers',   Icon: FiUser },
+};
 
 const Dashboard = () => {
-    const { user } = useAuth();
-    const isParent = user?.role === 'parent';
-    const tabs = useMemo(
-        () => (isParent ? ['attendance', 'grades'] : ['students', 'attendance', 'grades', 'notifications']),
-        [isParent]
-    );
+    const { user }    = useAuth();
+    const isParent    = user?.role === 'parent';
+    const isAdmin     = user?.role === 'admin';
 
-    const [activeTab, setActiveTab] = useState(() => (isParent ? 'attendance' : 'students'));
+    const tabs = useMemo(() => {
+        if (isParent) return ['overview', 'attendance', 'grades', 'notifications'];
+        if (isAdmin)  return ['analytics', 'students', 'teachers', 'attendance', 'grades', 'notifications'];
+        return ['attendance', 'grades', 'notifications'];
+    }, [isParent, isAdmin]);
 
+    const [activeTab, setActiveTab] = useState(isParent ? 'overview' : (isAdmin ? 'analytics' : 'attendance'));
+    const [showPushBanner, setShowPushBanner] = useState(false);
+
+    const {
+        permission, isSubscribed,
+        isLoading: pushLoading, subscribe, isPushSupported
+    } = usePushNotifications(isParent);
+    const { isInstallable, handleInstall } = usePWAInstall();
 
     useEffect(() => {
-        if (isParent) {
-            setActiveTab((t) => (t === 'students' || t === 'notifications' ? 'attendance' : t));
+        if (isParent && ['students', 'teachers', 'analytics'].includes(activeTab)) {
+            setActiveTab('overview');
         }
     }, [isParent]);
 
-
-    // Animation variants
-    const tabContentVariants = {
-        hidden: {
-            opacity: 0,
-            y: 10,
-            transition: {
-                duration: 0.2,
-                ease: [0.22, 1, 0.36, 1]
-            }
-        },
-        visible: {
-            opacity: 1,
-            y: 0,
-            transition: {
-                duration: 0.3,
-                ease: [0.22, 1, 0.36, 1],
-                when: "beforeChildren",
-                staggerChildren: 0.05
-            }
-        },
-        exit: {
-            opacity: 0,
-            y: -5,
-            transition: {
-                duration: 0.2,
-                ease: [0.22, 1, 0.36, 1]
+    useEffect(() => {
+        if (isParent && isPushSupported && !isSubscribed) {
+            if (permission === 'default') {
+                const t = setTimeout(() => setShowPushBanner(true), 1500);
+                return () => clearTimeout(t);
             }
         }
-    };
-
-    const tabButtonVariants = {
-        rest: { scale: 1 },
-        hover: { scale: 1.05 },
-        tap: { scale: 0.98 },
-        active: {
-            backgroundColor: "#2563eb",
-            color: "#ffffff",
-            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)"
-        }
-    };
+        // Only hide if truly subscribed
+        if (isSubscribed) setShowPushBanner(false);
+    }, [isParent, isPushSupported, permission, isSubscribed]);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 p-4 md:p-6">
-            <div className="max-w-7xl mx-auto relative">
-                {/* Header with Profile */}
-                <div className="relative mb-8">
-                    <div className="absolute top-0 right-0">
+        <div className="flex h-screen bg-gray-50 overflow-hidden text-gray-900 font-sans">
+            
+            {/* Desktop Sidebar (Bold & Professional) */}
+            <aside className="hidden md:flex w-64 flex-col bg-gray-900 text-white border-r border-gray-800 shadow-2xl z-20">
+                <div className="p-6 border-b border-gray-800 flex items-center justify-between">
+                    <div>
+                        <h1 className="text-xl font-black tracking-tight text-white">ParentaLink<span className="text-indigo-500">.</span></h1>
+                        <p className="text-xs text-gray-400 font-medium uppercase tracking-widest mt-1">
+                            {isParent ? 'Parent Portal' : isAdmin ? 'Admin Console' : 'Teacher Dashboard'}
+                        </p>
+                    </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto py-6 px-4 space-y-1">
+                    {tabs.map(tab => {
+                        const { label, Icon } = TAB_META[tab];
+                        const active = activeTab === tab;
+                        return (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                                    active ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-900/50' : 'text-gray-400 hover:bg-gray-800 hover:text-gray-200'
+                                }`}
+                            >
+                                <Icon size={18} strokeWidth={active ? 2.5 : 2} />
+                                <span className={`text-sm font-semibold tracking-wide ${active ? 'text-white' : ''}`}>{label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                <div className="p-4 border-t border-gray-800 flex items-center justify-center text-xs text-gray-500 font-medium">
+                    v1.2.0-stable
+                </div>
+            </aside>
+
+            {/* Mobile Header */}
+            <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b border-gray-200 z-50 flex items-center justify-between px-4 shadow-sm">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gray-900 text-white rounded-lg flex items-center justify-center font-bold">P</div>
+                    <div>
+                        <h1 className="text-sm font-black text-gray-900 leading-none">ParentaLink</h1>
+                        <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">{user?.role}</span>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    {isInstallable && (
+                        <button onClick={handleInstall} className="text-indigo-600 p-2"><FiDownload size={20} /></button>
+                    )}
+                    <ProfileDropdown />
+                </div>
+            </header>
+
+            {/* Main Content Area */}
+            <main className="flex-1 flex flex-col relative w-full h-full md:h-screen pt-16 md:pt-0 pb-[72px] md:pb-0 overflow-y-auto">
+                
+                {/* Desktop Top Nav (For actions like Install / Notifications) */}
+                <header className="hidden md:flex h-16 bg-white border-b border-gray-200 items-center justify-end px-8 shrink-0 shadow-sm z-10">
+                    <div className="flex items-center gap-4">
+                        <AnimatePresence>
+                            {showPushBanner && (
+                                <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                                    className="flex items-center gap-3 bg-indigo-50 border border-indigo-100 px-4 py-2 rounded-lg">
+                                    <span className="text-sm text-indigo-800 font-semibold">Enable desktop alerts</span>
+                                    <button onClick={subscribe} disabled={pushLoading} className="bg-indigo-600 text-white px-3 py-1 text-xs font-bold rounded shadow-sm hover:bg-indigo-700">
+                                        {pushLoading ? '...' : 'Allow'}
+                                    </button>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+                        {isInstallable && (
+                            <button onClick={handleInstall} className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-md hover:bg-gray-800 transition">
+                                <FiDownload /> Install App
+                            </button>
+                        )}
+                        <div className="h-6 w-px bg-gray-200 mx-2"></div>
                         <ProfileDropdown />
                     </div>
-                    <div className="flex justify-center">
-                        <div className="text-center">
-                            <motion.h1
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.4 }}
-                                className="text-3xl md:text-4xl font-bold text-gray-800 mb-2"
-                            >
-                                Academic Dashboard
-                            </motion.h1>
-                            <motion.p
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 0.1, duration: 0.4 }}
-                                className="text-base md:text-lg text-gray-600"
-                            >
-                                {isParent
-                                    ? 'View your child\'s attendance and marks'
-                                    : 'Manage your educational data with elegance'}
-                            </motion.p>
-                        </div>
+                </header>
+
+                {/* Mobile Push Banner */}
+                {showPushBanner && (
+                    <div className="md:hidden fixed top-16 left-0 right-0 bg-indigo-600 text-white px-4 py-3 z-40 flex items-center justify-between shadow-lg">
+                        <span className="text-xs font-semibold">Enable push notifications for instant alerts</span>
+                        <button onClick={subscribe} disabled={pushLoading} className="bg-white text-indigo-600 px-3 py-1.5 rounded text-xs font-bold shadow-sm">
+                            {pushLoading ? '...' : 'Enable'}
+                        </button>
                     </div>
+                )}
+
+                {/* Page Content */}
+                <div className="flex-1 p-4 md:p-8 w-full max-w-6xl mx-auto">
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={activeTab}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.2 }}
+                            className="w-full"
+                        >
+                            {activeTab === 'overview' && <ParentOverview />}
+                            {activeTab === 'analytics' && <Analytics />}
+                            {activeTab === 'students' && !isParent && <StudentDirectory />}
+                            {activeTab === 'teachers' && isAdmin && <TeacherDirectory />}
+                            {activeTab === 'attendance' && <AttendanceDirectory isParentView={isParent} />}
+                            {activeTab === 'grades' && <Grades readOnly={isParent} />}
+                            {activeTab === 'notifications' && <NotificationSystem />}
+                        </motion.div>
+                    </AnimatePresence>
                 </div>
+            </main>
 
-                {/* Tabs */}
-                <div className="mb-8 gap-2">
-  <motion.div
-    initial={{ opacity: 0, y: 10 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: 0.2, duration: 0.3 }}
-    className="flex bg-white p-1 rounded-lg shadow-md"
-  >
-    {tabs.map((tab) => (
-      <motion.button
-        key={tab}
-        variants={tabButtonVariants}
-        initial="rest"
-        whileHover="hover"
-        whileTap="tap"
-        animate={activeTab === tab ? 'active' : 'rest'}
-        onClick={() => setActiveTab(tab)}
-        className={`flex-1 flex flex-col items-center justify-center px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-          activeTab === tab ? '' : 'text-gray-600 hover:bg-blue-50'
-        }`}
-      >
-        <div className="flex flex-col items-center space-y-1">
-          {/* Icons */}
-          {tab === 'students' && (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-            </svg>
-          )}
-          {tab === 'attendance' && (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          )}
-          {tab === 'grades' && (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          )}
-          {tab === 'notifications' && (
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405M15 17V9a3 3 0 00-6 0v8m0 0H5l1.405-1.405" />
-            </svg>
-          )}
-          <span className="capitalize">{tab}</span>
-        </div>
-      </motion.button>
-    ))}
-  </motion.div>
-</div>
-                {/* Content with Animation */}
-                <div className="bg-[#eef6ff] rounded-xl shadow-xl overflow-hidden border border-gray-100">
-                    <div className="p-4 md:p-8">
-                        <AnimatePresence mode="wait">
-                            {activeTab === 'students' && !isParent && (
-                                <motion.div
-                                    key="students"
-                                    layout
-                                    initial={{ opacity: 0, y: 30 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    transition={{ duration: 0.5, ease: "easeInOut" }}
-                                >
-                                    <StudentDirectory />
-                                </motion.div>
-                            )}
-
-                            {activeTab === 'attendance' && (
-                                <motion.div
-                                    key="attendance"
-                                    layout
-                                    initial={{ opacity: 0, y: 30 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    transition={{ duration: 0.5, ease: "easeInOut" }}
-                                >
-                                    <AttendanceDirectory isParentView={isParent} />
-                                </motion.div>
-                            )}
-
-                            {activeTab === 'grades' && (
-                                <motion.div
-                                    key="grades"
-                                    layout
-                                    className="p-8 text-center text-gray-500"
-                                    initial={{ opacity: 0, y: 30 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    transition={{ duration: 0.5, ease: "easeInOut" }}
-                                >
-                                    <Grades readOnly={isParent} />
-                                </motion.div>
-                            )}
-                            {/* {activeTab === 'notifications' && (
-                                <motion.div
-                                    key="notifications"
-                                    layout
-                                    className="p-8 text-center text-gray-500"
-                                    initial={{ opacity: 0, y: 30 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -20 }}
-                                    transition={{ duration: 0.5, ease: "easeInOut" }}
-                                >
-                                    <NotificationSystem />
-                                </motion.div>
-                            )} */}
-                        </AnimatePresence>
-                    </div>
+            {/* Mobile Bottom Navigation (Flat & Minimalist) */}
+            <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 pb-safe">
+                <div className="flex justify-around items-center h-[60px]">
+                    {tabs.map(tab => {
+                        const { label, Icon } = TAB_META[tab];
+                        const active = activeTab === tab;
+                        return (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`flex-1 h-full flex flex-col items-center justify-center gap-1 transition-colors ${
+                                    active ? 'text-indigo-600' : 'text-gray-400 hover:text-gray-600'
+                                }`}
+                            >
+                                <Icon size={22} strokeWidth={active ? 2.5 : 2} />
+                                <span className={`text-[10px] font-bold tracking-wide uppercase ${active ? 'text-indigo-600' : 'text-gray-500'}`}>
+                                    {label}
+                                </span>
+                            </button>
+                        );
+                    })}
                 </div>
-            </div>
+            </nav>
         </div>
     );
 };

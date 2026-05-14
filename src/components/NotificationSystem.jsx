@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiBell, FiX, FiCheck, FiAlertCircle, FiCalendar, FiDollarSign, FiBook, FiSend } from 'react-icons/fi';
+import { FiBell, FiX, FiCheck, FiAlertCircle, FiCalendar, FiDollarSign, FiBook, FiSend, FiInfo, FiCheckCircle } from 'react-icons/fi';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { useAuth } from '../context/AuthContext';
 
 const NotificationSystem = () => {
+  const { user } = useAuth();
+  const isParent = user?.role === 'parent';
   const backendUrl = import.meta.env.VITE_BACKEND_URL;
   const [notifications, setNotifications] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,7 +41,7 @@ const NotificationSystem = () => {
     const fetchNotifications = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get(`${backendUrl}/api/notifications`, {
+        const response = await axios.get(`${backendUrl}/api/notification`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setNotifications(response.data);
@@ -61,11 +64,11 @@ const NotificationSystem = () => {
   const markAsRead = async (id) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.patch(`${backendUrl}/api/notifications/${id}/read`, {}, {
+      await axios.patch(`${backendUrl}/api/notification/${id}/read`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setNotifications(notifications.map(n => 
-        n.id === id ? { ...n, read: true } : n
+        n._id === id ? { ...n, read: true } : n
       ));
     } catch (error) {
       console.error('Error marking as read:', error);
@@ -76,10 +79,10 @@ const NotificationSystem = () => {
   const deleteNotification = async (id) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`${backendUrl}/api/notifications/${id}`, {
+      await axios.delete(`${backendUrl}/api/notification/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setNotifications(notifications.filter(n => n.id !== id));
+      setNotifications(notifications.filter(n => n._id !== id));
       showSuccessToast('Notification deleted');
     } catch (error) {
       console.error('Error deleting notification:', error);
@@ -96,7 +99,7 @@ const NotificationSystem = () => {
     setIsSending(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.post(`${backendUrl}/api/notifications`, newNotification, {
+      const response = await axios.post(`${backendUrl}/api/notification`, newNotification, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -175,15 +178,17 @@ const NotificationSystem = () => {
       <ToastContainer />
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h2 className="text-2xl font-semibold text-gray-800">Notification Center</h2>
-        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md flex items-center justify-center space-x-2"
-          >
-            <FiSend />
-            <span>New Notification</span>
-          </button>
-        </div>
+        {!isParent && (
+          <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md flex items-center justify-center space-x-2"
+            >
+              <FiSend />
+              <span>New Notification</span>
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="bg-blue-50 p-4 rounded-lg flex items-center justify-between border border-blue-100">
@@ -200,25 +205,41 @@ const NotificationSystem = () => {
         </span>
       </div>
 
-      <div className="border-b border-gray-200">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveTab('all')}
-            className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'all' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
-          >
-            All Notifications
-          </button>
-          {notificationTypes.map((type) => (
+      {/* Horizontally scrollable tab strip — safe on all phone widths */}
+      <div style={{ borderBottom: '1px solid #e5e7eb' }}>
+        <div style={{
+          display: 'flex',
+          overflowX: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          scrollbarWidth: 'none',
+          gap: 0,
+          padding: '0 2px',
+        }}
+        className="hide-scrollbar">
+          {[{ value: 'all', label: 'All', icon: null }, ...notificationTypes].map(type => (
             <button
               key={type.value}
               onClick={() => setActiveTab(type.value)}
-              className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center ${activeTab === type.value ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                padding: '12px 16px',
+                border: 'none', background: 'none',
+                cursor: 'pointer',
+                fontSize: 13,
+                fontWeight: activeTab === type.value ? 700 : 500,
+                color: activeTab === type.value ? '#2563eb' : '#6b7280',
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+                borderBottom: activeTab === type.value ? '2px solid #2563eb' : '2px solid transparent',
+                transition: 'all 0.15s',
+                WebkitTapHighlightColor: 'transparent',
+              }}
             >
               {type.icon}
-              {type.label}
+              {type.label || 'All Notifications'}
             </button>
           ))}
-        </nav>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-100">
@@ -234,7 +255,7 @@ const NotificationSystem = () => {
           <div className="divide-y divide-gray-200">
             {filteredNotifications.map((notification) => (
               <div
-                key={notification.id}
+                key={notification._id}
                 className={`p-4 ${!notification.read ? 'bg-blue-50/30' : ''} ${getNotificationColor(notification.type)}`}
               >
                 <div className="flex justify-between">
@@ -246,7 +267,7 @@ const NotificationSystem = () => {
                       <div className="flex items-center justify-between">
                         <h4 className="font-medium text-gray-800">{notification.title}</h4>
                         <span className="text-xs text-gray-500 ml-2">
-                          {new Date(notification.date).toLocaleDateString()}
+                          {new Date(notification.date || notification.createdAt).toLocaleDateString()}
                         </span>
                       </div>
                       <p className="text-sm text-gray-600 mt-1">{notification.message}</p>
@@ -264,20 +285,22 @@ const NotificationSystem = () => {
                   <div className="flex space-x-2 ml-2">
                     {!notification.read && (
                       <button
-                        onClick={() => markAsRead(notification.id)}
+                        onClick={() => markAsRead(notification._id)}
                         className="text-green-500 hover:text-green-700"
                         title="Mark as read"
                       >
                         <FiCheck size={18} />
                       </button>
                     )}
-                    <button
-                      onClick={() => deleteNotification(notification.id)}
-                      className="text-red-500 hover:text-red-700"
-                      title="Delete"
-                    >
-                      <FiX size={18} />
-                    </button>
+                    {!isParent && (
+                      <button
+                        onClick={() => deleteNotification(notification._id)}
+                        className="text-red-500 hover:text-red-700"
+                        title="Delete"
+                      >
+                        <FiX size={18} />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

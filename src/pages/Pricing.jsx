@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
 import { FiCheck } from 'react-icons/fi';
-import MainLayout from '../components/MainLayout';
 
 const Pricing = () => {
   const tiers = [
@@ -35,8 +34,7 @@ const Pricing = () => {
   ];
 
   return (
-    <MainLayout>
-      <section className="py-16 bg-gradient-to-b from-white to-blue-50 min-h-screen">
+    <section className="py-16 bg-gradient-to-b from-white to-blue-50 min-h-screen">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
@@ -143,7 +141,6 @@ const Pricing = () => {
           </div>
         </div>
       </section>
-    </MainLayout>
   );
 };
 

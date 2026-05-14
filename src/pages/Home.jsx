@@ -5,6 +5,7 @@ import {
   FiBook, FiBookOpen, FiAward,
   FiUsers, FiLayers, FiPieChart, FiBarChart2
 } from 'react-icons/fi';
+import { useAuth } from '../context/AuthContext';
 
 function Home() {
   const navigate = useNavigate();
@@ -15,6 +16,17 @@ function Home() {
   const [bgColor, setBgColor] = useState('#f9fbfa');
   const [isNavigating, setIsNavigating] = useState(false);
   const [progress, setProgress] = useState(0);
+  const { user, isInitialized } = useAuth();
+
+  useEffect(() => {
+    if (isInitialized && user) {
+      if (user.role === 'superadmin') {
+        navigate('/superadmin', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
+    }
+  }, [isInitialized, user, navigate]);
 
   const textsToType = [
     "Send attendance directly to parents",

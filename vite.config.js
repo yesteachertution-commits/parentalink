@@ -2,20 +2,28 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    basicSsl(),
     VitePWA({
-      registerType: 'autoUpdate',
+      strategies: 'injectManifest',
+      srcDir: 'public',
+      filename: 'sw.js',
+      registerType: 'prompt',
+      injectManifest: {
+        injectionPoint: undefined
+      },
       includeAssets: ['favicon.ico', 'icons/*.svg'],
       manifest: {
-        name: 'School Wishper',
-        short_name: 'SchoolApp',
+        name: 'ParentaLink Dashboard',
+        short_name: 'ParentaLink',
         description: 'Academic Dashboard for managing students, attendance and grades',
-        theme_color: '#2563eb',
-        background_color: '#ffffff',
+        theme_color: '#111827',
+        background_color: '#f9fafb',
         display: 'standalone',
         start_url: '/',
         icons: [
@@ -23,26 +31,27 @@ export default defineConfig({
           { src: '/icons/icon-512.svg', sizes: '512x512', type: 'image/svg+xml' },
           { src: '/icons/icon-512.svg', sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
         ]
-      },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/parentalink-backend-fpqj\.vercel\.app\/api\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 },
-              networkTimeoutSeconds: 10
-            }
-          }
-        ]
       }
     })
   ],
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
-    emptyOutDir: true
+    emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router-dom')) return 'vendor-react';
+            if (id.includes('framer-motion')) return 'vendor-framer';
+            if (id.includes('pusher-js')) return 'vendor-pusher';
+            return 'vendor-core';
+          }
+        }
+      }
+    }
+  },
+  esbuild: {
+    drop: ['console', 'debugger'],
   },
 })
