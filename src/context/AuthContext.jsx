@@ -53,7 +53,9 @@ export const AuthProvider = ({ children }) => {
         email: decoded.email ?? null,
         role: decoded.role || "admin",
         studentId: decoded.studentId ?? null,
+        tenantId: decoded.tenantId ?? null,   // CRITICAL: required for Pusher tenant channel
         schoolCode: decoded.schoolCode ?? null,
+        mobile: decoded.mobile ?? null,
       });
     } catch { logout(); }
   }, [decodeToken, logout]);

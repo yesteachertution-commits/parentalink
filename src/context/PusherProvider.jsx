@@ -153,9 +153,18 @@ export const PusherProvider = ({ children }) => {
         });
 
         const channelName = `student-${user.studentId}`;
-        const subscribedChannel = pusher.subscribe(channelName);
-
         const tenantChannelName = `tenant-${user.tenantId}`;
+
+        // AUDIT LOG: Verify channel names are not undefined
+        console.log('[Pusher] Subscribing to channel:', channelName);
+        console.log('[Pusher] Subscribing to tenant channel:', tenantChannelName);
+
+        if (channelName === 'student-null' || channelName === 'student-undefined') {
+            console.error('[Pusher] CRITICAL: studentId is missing from user object. Aborting subscription.');
+            return;
+        }
+
+        const subscribedChannel = pusher.subscribe(channelName);
         const subscribedTenantChannel = pusher.subscribe(tenantChannelName);
 
         // ── Global event handler that fires in-app banners ──────────────────
