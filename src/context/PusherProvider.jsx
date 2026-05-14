@@ -157,6 +157,10 @@ export const PusherProvider = ({ children }) => {
         console.log('[Pusher] Subscribing to tenant channel:', tenantChannelName);
         const subscribedTenantChannel = pusher.subscribe(tenantChannelName);
 
+        const userChannelName = `user-${user.id}`;
+        console.log('[Pusher] Subscribing to user channel:', userChannelName);
+        const subscribedUserChannel = pusher.subscribe(userChannelName);
+
         let subscribedChannel = null;
         if (user.role === 'parent' && user.studentId) {
             const channelName = `student-${user.studentId}`;
@@ -168,7 +172,12 @@ export const PusherProvider = ({ children }) => {
         const handlePusherEvent = (eventName, data) => {
             console.log(`[Pusher] Event received: ${eventName}`, data);
 
-            if (eventName === 'attendanceUpdate') {
+            if (eventName === 'force_logout') {
+                console.warn('[Pusher] Force logout received. Wiping session.');
+                // We don't have direct access to logout here easily without importing it, but wait, we have `useAuth()` at the top:
+                // const { user, logout } = useAuth(); (we'll need to add logout to the destructuring)
+                // Actually, let's just trigger a custom window event or do it directly if we add it.
+            } else if (eventName === 'attendanceUpdate') {
                 const icon = data.status === 'Present' ? '✅' : '❌';
                 showInAppNotification(
                     `${icon} Attendance Marked`,
@@ -199,6 +208,17 @@ export const PusherProvider = ({ children }) => {
 
         // Bind school-wide events
         subscribedTenantChannel.bind('newAlert', (d) => handlePusherEvent('newAlert', d));
+        subscribedTenantChannel.bind('force_logout', (d) => {
+            console.warn('[Pusher] Force logout received on tenant channel. Wiping session.');
+            localStorage.clear();
+            window.location.href = '/login';
+        });
+
+        subscribedUserChannel.bind('force_logout', (d) => {
+            console.warn('[Pusher] Force logout received on user channel. Wiping session.');
+            localStorage.clear();
+            window.location.href = '/login';
+        });
 
         setPusherInstance(pusher);
         setChannel(subscribedChannel);
@@ -211,6 +231,8 @@ export const PusherProvider = ({ children }) => {
             }
             subscribedTenantChannel.unbind_all();
             pusher.unsubscribe(tenantChannelName);
+            subscribedUserChannel.unbind_all();
+            pusher.unsubscribe(userChannelName);
             pusher.disconnect();
         };
     }, [user, showInAppNotification]);
