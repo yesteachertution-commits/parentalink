@@ -32,8 +32,6 @@ self.addEventListener('push', (event) => {
     
     const options = {
         body: payload.body || 'You have a new update from the school.',
-        icon: '/vite.svg', // Forced lightweight icon to prevent Android SW timeout on locked screen
-        badge: '/vite.svg',
         vibrate: [200, 100, 200, 100, 200], // More aggressive vibration pattern
         tag: payload.tag || 'parentalink-notification',
         data: payload.data || { url: '/dashboard' },
