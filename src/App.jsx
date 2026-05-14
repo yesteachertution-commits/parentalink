@@ -5,6 +5,7 @@ import ProtectedRoute from './routes/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import { PusherProvider } from './context/PusherProvider';
 import { FiWifiOff } from 'react-icons/fi';
+import ReloadPrompt from './components/ReloadPrompt';
 
 // Lazy load components
 const Home = lazy(() => import('./pages/Home'));
@@ -52,6 +53,7 @@ function App() {
   return (
     <>
       <OfflineBanner />
+      <ReloadPrompt />
       <AuthProvider>
       <PusherProvider>
         <Router>

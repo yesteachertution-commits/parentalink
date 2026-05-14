@@ -96,8 +96,8 @@ const Dashboard = () => {
                     })}
                 </div>
 
-                <div className="p-4 border-t border-gray-800">
-                    <ProfileDropdown />
+                <div className="p-4 border-t border-gray-800 flex items-center justify-center text-xs text-gray-500 font-medium">
+                    v1.2.0-stable
                 </div>
             </aside>
 
@@ -140,6 +140,8 @@ const Dashboard = () => {
                                 <FiDownload /> Install App
                             </button>
                         )}
+                        <div className="h-6 w-px bg-gray-200 mx-2"></div>
+                        <ProfileDropdown />
                     </div>
                 </header>
 

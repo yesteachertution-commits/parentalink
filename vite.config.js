@@ -13,7 +13,7 @@ export default defineConfig({
       strategies: 'injectManifest',
       srcDir: 'public',
       filename: 'sw.js',
-      registerType: 'autoUpdate',
+      registerType: 'prompt',
       injectManifest: {
         injectionPoint: undefined
       },
@@ -50,5 +50,8 @@ export default defineConfig({
         }
       }
     }
+  },
+  esbuild: {
+    drop: ['console', 'debugger'],
   },
 })
